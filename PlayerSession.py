@@ -25,7 +25,6 @@ class PlayerSession:
 
     def __init__(self, name):
         self.name = name
-        self.connection = ServerConnection()
 
     def __enter__(self):
         self.connection = ServerConnection()
