@@ -27,6 +27,10 @@ class PlayerSession:
         self.name = name
         self.connection = ServerConnection()
 
+    def __enter__(self):
+        self.connection = ServerConnection()
+        return self
+    
     @staticmethod
     def __handleResult(result):
         """
@@ -88,9 +92,9 @@ class PlayerSession:
         result = self.__handleResult(result)
         return result
 
-    def __del__(self):
+    def __exit__(self, *args):
         """
-        Before deleting object, closes connection to the server socket
+        Close connection to the server socket on exit
         """
         self.connection.close()
 
@@ -98,17 +102,17 @@ class PlayerSession:
 def gameLoop():
     print("Name: ", end="")
     name = input()
-    session = PlayerSession(name)
-    playerID = session.login()
-    gameState = session.getGameState()
-
-    while not gameState["finished"]:
-        if gameState["current_player_idx"] == playerID:
-            session.nextTurn()
+    with PlayerSession(name) as session:
+        playerID = session.login()
         gameState = session.getGameState()
 
-    print(gameState["winner"])
-    session.logout()
+        while not gameState["finished"]:
+            if gameState["current_player_idx"] == playerID:
+                session.nextTurn()
+            gameState = session.getGameState()
+
+        print(gameState["winner"])
+        session.logout()
 
 
 if __name__ == "__main__":
