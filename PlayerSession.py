@@ -16,7 +16,7 @@ class Result(IntEnum):
     INTERNAL_SERVER_ERROR = 500
 
 
-class GameSession:
+class PlayerSession:
     __slots__ = ("name", "connection")  # class members
 
     def __init__(self, name):
@@ -48,7 +48,7 @@ class GameSession:
 def gameLoop():
     print("Name: ", end="")
     name = input()
-    session = GameSession(name)
+    session = PlayerSession(name)
     playerID = session.login()
     print(playerID)
     session.logout()
