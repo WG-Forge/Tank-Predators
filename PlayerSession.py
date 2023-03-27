@@ -87,8 +87,7 @@ class PlayerSession:
         The game state is updated at the end of a turn.
         :return:
         """
-        result = self.connection.game_state()
-        result = self.__handleResult(result)
+        result = self.__handleResult(self.connection.game_state())
         return result
 
     def __exit__(self, *args):
