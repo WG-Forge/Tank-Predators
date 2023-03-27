@@ -1,9 +1,20 @@
 import socket
 import struct
 import json
-
+from enum import IntEnum
 jsonDict = dict[str, any] # alias
 
+
+class Action(IntEnum):
+    LOGIN = 1
+    LOGOUT = 2
+    MAP = 3
+    GAME_STATE = 4
+    GAME_ACTIONS = 5
+    TURN = 6
+    CHAT = 100
+    MOVE = 101
+    SHOOT = 102
 
 
 class ServerConnection:
@@ -76,7 +87,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(1, data)
+        return self.__sendRequest(Action.LOGIN.value, data)
     
 
     def logout(self) -> jsonDict:
@@ -85,7 +96,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(2)
+        return self.__sendRequest(Action.LOGOUT.value)
     
 
     def map(self) -> jsonDict:
@@ -94,7 +105,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(3)
+        return self.__sendRequest(Action.MAP.value)
     
 
     def game_state(self) -> jsonDict:
@@ -103,7 +114,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(4)      
+        return self.__sendRequest(Action.GAME_STATE.value)
       
 
     def game_actions(self) -> jsonDict:
@@ -112,7 +123,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(5)
+        return self.__sendRequest(Action.GAME_ACTIONS.value)
     
 
     def turn(self) -> jsonDict:
@@ -122,7 +133,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(6)
+        return self.__sendRequest(Action.TURN.value)
     
 
     def chat(self, data : jsonDict) -> jsonDict:
@@ -135,7 +146,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(100, data)
+        return self.__sendRequest(Action.CHAT.value, data)
 
 
     def move(self, data : jsonDict) -> jsonDict:
@@ -149,7 +160,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(101, data)
+        return self.__sendRequest(Action.MOVE.value, data)
 
 
     def shoot(self, data : jsonDict) -> jsonDict:
@@ -163,7 +174,7 @@ class ServerConnection:
 
         :return: The response of the request.
         '''
-        return self.__sendRequest(102, data)               
+        return self.__sendRequest(Action.SHOOT.value, data)
 
 
     def close(self) -> None:

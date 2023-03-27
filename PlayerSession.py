@@ -1,5 +1,3 @@
-import enum
-
 from ServerConnection import ServerConnection
 from enum import IntEnum
 
@@ -14,6 +12,12 @@ class Result(IntEnum):
     INAPPROPRIATE_GAME_STATE = 3
     TIMEOUT = 4
     INTERNAL_SERVER_ERROR = 500
+
+    def __eq__(self, other):
+        if isinstance(other, Result):
+            return self.value == other.value
+
+        return self.value == other  # if it's int
 
 
 class PlayerSession:
@@ -32,17 +36,23 @@ class PlayerSession:
         data = dict()
         data["name"] = self.name
         result = self.connection.login(data)
-        if result["resultCode"] != Result.OKAY.value:
+        if result["resultCode"] != Result.OKAY:
             raise Exception("Login failed")
 
         return int(result["data"]["idx"])
 
     def logout(self):
+        """
+        Logs out the player and removes the player's record from the server storage.
+        """
         self.connection.logout()
 
+
     def __del__(self):
+        """
+        Before deleting object, closes connection to the server socket
+        """
         self.connection.close()
-        self.connection = None
 
 
 def gameLoop():
