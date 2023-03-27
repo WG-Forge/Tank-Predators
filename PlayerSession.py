@@ -27,6 +27,21 @@ class PlayerSession:
         self.name = name
         self.connection = ServerConnection()
 
+    @staticmethod
+    def __handleResult(result):
+        """
+        Handles error codes and returns data if request was successful
+        :param result: result dict from action request with "resultCode" and "data" keys
+        :return: result["data"] if the result was Okay,
+        None if it was TIMEOUT error.
+        Exception is raised for other error types.
+        """
+        code = result["resultCode"]
+        if code == Result.BAD_COMMAND or code == Result.INAPPROPRIATE_GAME_STATE or code == Result.ACCESS_DENIED or code == Result.INTERNAL_SERVER_ERROR:
+            raise Exception("ERROR: " + (Result(code)).name)  # example: ERROR: BAD_COMMAND
+        elif code == Result.TIMEOUT:
+            return None  # Action should be requested again
+        return result["data"]
 
     def login(self) -> int:
         """
@@ -36,10 +51,9 @@ class PlayerSession:
         data = dict()
         data["name"] = self.name
         result = self.connection.login(data)
-        if result["resultCode"] != Result.OKAY:
-            raise Exception("Login failed")
+        result = self.__handleResult(result)
 
-        return int(result["data"]["idx"])
+        return int(result["idx"])
 
     def logout(self):
         """
@@ -47,6 +61,32 @@ class PlayerSession:
         """
         self.connection.logout()
 
+    def nextTurn(self):
+        """
+        Sends a TURN action, which forces the next turn of the game.
+        This allows players to play faster and not wait for the game's time slice.
+        The game's time slice is 10 seconds for test battles and 1 second for final battles. All players and observers
+        must send the TURN action before the next turn can happen.
+
+        If original turn action timed out, we issue more request. If all of them time out, Exception is raised.
+        :return:
+        """
+        for i in range(100):
+            result = self.__handleResult(self.connection.turn())
+            if result is not None:
+                break
+        else:  # if all requests Timed out.
+            raise Exception("ERROR: TIMEOUT")
+
+    def getGameState(self):
+        """
+        Returns the current state of the game. The game state represents dynamic information about the game.
+        The game state is updated at the end of a turn.
+        :return:
+        """
+        result = self.connection.game_state()
+        result = self.__handleResult(result)
+        return result
 
     def __del__(self):
         """
@@ -60,7 +100,14 @@ def gameLoop():
     name = input()
     session = PlayerSession(name)
     playerID = session.login()
-    print(playerID)
+    gameState = session.getGameState()
+
+    while not gameState["finished"]:
+        if gameState["current_player_idx"] == playerID:
+            session.nextTurn()
+        gameState = session.getGameState()
+
+    print(gameState["winner"])
     session.logout()
 
 
