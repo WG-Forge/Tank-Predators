@@ -1,6 +1,8 @@
 from ServerConnection import ServerConnection
 from enum import IntEnum
 
+resultDict = dict[str, any]  # result dictionary type
+
 
 class Result(IntEnum):
     """
@@ -29,7 +31,7 @@ class PlayerSession:
     def __enter__(self):
         self.connection = ServerConnection()
         return self
-    
+
     @staticmethod
     def __handleResult(result):
         """
@@ -53,8 +55,7 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        result = self.connection.login(data)
-        result = self.__handleResult(result)
+        result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])
 
@@ -81,15 +82,37 @@ class PlayerSession:
         else:  # if all requests Timed out.
             raise Exception("ERROR: TIMEOUT")
 
-    def getGameState(self):
+    def getMapInfo(self) -> resultDict:
+        """
+        Returns the game map. Map represents static information about the game.
+        :return: data about the map
+        """
+        return self.__handleResult(self.connection.map())
+
+    def getGameActions(self) -> resultDict:
+        """
+        Gets a list of game actions that happened in the previous turn, representing changes between turns.
+
+        :return: data about the game actions
+        """
+        return self.__handleResult(self.connection.game_actions())
+
+    def sendChatMessage(self, message):
+        """
+        Do nothing. Just for testing and fun.
+        :param message: message to be sent
+        """
+        data = dict()
+        data["message"] = message
+        self.__handleResult(self.connection.chat(data))
+
+    def getGameState(self) -> resultDict:
         """
         Returns the current state of the game. The game state represents dynamic information about the game.
         The game state is updated at the end of a turn.
-        :return:
+        :return: dictionary with game state
         """
-        result = self.connection.game_state()
-        result = self.__handleResult(result)
-        return result
+        return self.__handleResult(self.connection.game_state())
 
     def __exit__(self, *args):
         """
