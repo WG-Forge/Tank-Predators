@@ -128,7 +128,7 @@ class PlayerSession:
 
 
 def gameLoop():
-    print("Name: ", end="")
+    #print("Name: ", end="")
     name = "test23"#input()
     with PlayerSession(name) as session:
         playerID = session.login()
@@ -146,11 +146,10 @@ def gameLoop():
             if gameState["current_player_idx"] == playerID:
                 # perform movement with each tank
                 for tankId in playerTanks:
-                    print(tankId)
                     moves = map.getMoves(str(tankId))
                     moveToUse = random.randint(0, len(moves) - 1)
 
-                    print(moves[moveToUse])
+                    print(f"TankId {tankId}, Possible move count : {len(moves)}, Chosen move : {moves[moveToUse]}")
                     session.move({"vehicle_id": tankId, "target": moves[moveToUse]})
                     map.move(str(tankId), moves[moveToUse])
                 
