@@ -1,5 +1,7 @@
 from ServerConnection import ServerConnection
 from enum import IntEnum
+from Map import Map
+import random
 
 resultDict = dict[str, any]  # result dictionary type
 
@@ -114,6 +116,9 @@ class PlayerSession:
         """
         return self.__handleResult(self.connection.game_state())
 
+    def move(self, message) -> resultDict:
+        return self.__handleResult(self.connection.move(message))
+
     def __exit__(self, *args):
         """
         Close connection to the server socket on exit
@@ -128,8 +133,15 @@ def gameLoop():
         playerID = session.login()
         gameState = session.getGameState()
 
+        map = Map(session.getMapInfo(), gameState)
+
         while not gameState["finished"]:
             if gameState["current_player_idx"] == playerID:
+                moves = map.getMoves("1")
+                moveToUse = random.randint(0, len(moves) - 1)
+                print(moves[moveToUse])
+                session.move({"vehicle_id": 1, "target": moves[moveToUse]})
+                map.move("1", moves[moveToUse])
                 session.nextTurn()
             gameState = session.getGameState()
 
