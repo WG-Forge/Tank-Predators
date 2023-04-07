@@ -58,6 +58,8 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
+        data["game"] = "test102"
+        data["num_players"] = 2
         result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])
@@ -128,18 +130,18 @@ class PlayerSession:
 
 
 def gameLoop():
-    #print("Name: ", end="")
-    name = "test23"#input()
+    print("Name: ", end="")
+    name = input()
     with PlayerSession(name) as session:
         playerID = session.login()
         gameState = session.getGameState()
 
         # find all player tanks and create a list that matches turn order
         playerTanks = [None] * len(Tanks.turnOrder)
-
         for tankId, tankData in gameState["vehicles"].items():
             if tankData["player_id"] == playerID:
                 playerTanks[Tanks.turnOrder.index(tankData["vehicle_type"])] = tankId
+
         map = Map(session.getMapInfo(), gameState)
 
         while not gameState["finished"]:
@@ -152,8 +154,14 @@ def gameLoop():
                     print(f"TankId {tankId}, Possible move count : {len(moves)}, Chosen move : {moves[moveToUse]}")
                     session.move({"vehicle_id": tankId, "target": moves[moveToUse]})
                     map.move(str(tankId), moves[moveToUse])
-                
-                session.nextTurn()
+            else:
+                gameActions = session.getGameActions()
+                for action in gameActions["actions"]:
+                    if action["action_type"] == 101:
+                        actionData = action["data"]
+                        map.move(str(actionData["vehicle_id"]), actionData["target"])
+
+            session.nextTurn()
             gameState = session.getGameState()
 
         print(gameState["winner"])
@@ -161,7 +169,7 @@ def gameLoop():
 
 
 if __name__ == "__main__":
-    try:
-        gameLoop()
-    except Exception as e:
-        print(e)
+    # try:
+    gameLoop()
+    # except Exception as e:
+    #     print(e)
