@@ -1,6 +1,10 @@
 jsonDict = dict[str, any] # alias
 
 class Tanks():
+   # Players can only use tanks in a strict order
+   turnOrder = ["spg", "light_tank", "heavy_tank", "medium_tank", "at_spg"]
+
+   # Stats of each tank
    allTanks = {
       "spg" : {
          "hp" : 1,
