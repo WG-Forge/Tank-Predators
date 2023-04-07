@@ -141,21 +141,27 @@ class Map():
                     nextHex["z"] = currentHex["z"] + permutation[2]
 
                     if not nextHex in possibleMoves and not nextHex in queue and abs(nextHex["x"]) < self.__size and abs(nextHex["y"]) < self.__size and abs(nextHex["z"]) < self.__size:
-                        nextHexTuple = HexToTuple(nextHex)
-                        if self.__map.get(nextHexTuple, "Empty") in self.__canMoveTrough:
-                            isSpawnPoint = self.__spawnPoints.get(nextHexTuple, None)
-                            if not isSpawnPoint or (isSpawnPoint and self.__tanks[tankId]["spawn_position"] == nextHex):
-                                queue.append(nextHex)
+                        if self.__map.get(HexToTuple(nextHex), "Empty") in self.__canMoveTrough:
+                            queue.append(nextHex)
+
                 # Out of cells at current distance       
                 if popsLeft == 0:
                     depth -= 1
                     popsLeft = len(queue)
-                else:
-                    possibleMoves.extend(queue)
-                    break
+            else:
+                possibleMoves.extend(queue)
+                break
 
         # Returns only the possible moves that the tank can move to
-        return [move for move in possibleMoves if self.__map.get(HexToTuple(move), "Empty") in self.__canMoveTo]
+        result = []
+        for move in possibleMoves:
+            moveTuple = HexToTuple(move)
+            isSpawnPoint = self.__spawnPoints.get(moveTuple, None)
+            if not isSpawnPoint or (isSpawnPoint and self.__tanks[tankId]["spawn_position"] == move):
+                if self.__map.get(moveTuple, "Empty") in self.__canMoveTo:
+                    result.append(move)
+
+        return result
     
     def move(self, tankId : str, hex : jsonDict) -> None:
         '''
