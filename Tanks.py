@@ -1,0 +1,35 @@
+jsonDict = dict[str, any] # alias
+
+class Tanks():
+   allTanks = {
+      "spg" : {
+         "hp" : 1,
+         "sp" : 1,
+         "damage" : 1,
+         "destructionPoints" : 1,
+      },
+      "light_tank" : {
+         "hp" : 1,
+         "sp" : 3,
+         "damage" : 1,
+         "destructionPoints" : 1,
+      },
+      "heavy_tank" : {
+         "hp" : 3,
+         "sp" : 1,
+         "damage" : 1,
+         "destructionPoints" : 3,
+      },
+      "medium_tank" : {
+         "hp" : 2,
+         "sp" : 2,
+         "damage" : 1,
+         "destructionPoints" : 2,
+      },
+      "at_spg" : {
+         "hp" : 2,
+         "sp" : 1,
+         "damage" : 1,
+         "destructionPoints" : 2,
+      },
+   }
