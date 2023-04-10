@@ -3,6 +3,8 @@ from Tanks import *
 from Utils import HexToTuple
 
 jsonDict = dict[str, any] # alias
+from HexGrid import *
+from tkinter import *
 
 class Map():
     def __init__(self, map : jsonDict, gameState : jsonDict) -> None:
@@ -20,7 +22,8 @@ class Map():
         self.__spawnPoints = map["spawn_points"]
         self.__initializeBase(map["content"]["base"])
         self.__initializeTanks(gameState["vehicles"])
-
+        self.__formPlayerColors(gameState["players"])
+        self.__drawMap()
 
     def __initializeBase(self, base : jsonDict) -> None:
         '''
@@ -40,6 +43,36 @@ class Map():
         for id, tank in self.__tanks.items():
             self.__canMoveTrough.append(id)
             self.__map[HexToTuple(tank["position"])] = id
+
+    def __formPlayerColors(self, players: list) -> None:
+        '''
+        Forms the colors which are used to respresent different teams.
+        '''
+        self.__teamColors = {}
+        colors = ["orange", "purple", "blue"]
+        for index, player in enumerate(players):
+            self.__teamColors[player["idx"]] = colors[index]
+
+    def __drawMap(self) -> None:
+        '''
+        Draws the map in it's initial form.
+        '''
+        self.__window = Tk()
+        self.__window.title(self.__name + " on HexTanks")
+        self.__grid = HexagonalGrid(self.__window, hexaSize=20, grid_width=self.__size, grid_height=self.__size)
+        self.__grid.grid(row=0, column=0, padx=5, pady=5)
+
+        draw_grid(self.__grid, self.__size, 0, 0)
+        grid_set.clear()
+
+        # draw spawn points
+        spawnColors = ['orange', 'purple', 'blue']
+        for index, playerSpawnPoints in enumerate(self.__spawnPoints):
+            cellFill = spawnColors[index]
+            for spawnPoint in playerSpawnPoints.values():
+                cubicCoordinates = HexToTuple(spawnPoint[0])
+                offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
+                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=cellFill)
 
 
     def isBase(self, hex : jsonDict) -> bool:
@@ -102,5 +135,40 @@ class Map():
     
     def move(self, tankId : str, hex : jsonDict) -> None:
         self.__map.pop(HexToTuple(self.__tanks[tankId]["position"]))
+
+        # Draw an empty cell.
+        cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
+        offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
+        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill="white")
+        # Draw an occupied cell.
+        cubicCoordinates = HexToTuple(hex)
+        offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
+        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[self.__tanks[tankId]["player_id"]])
+
         self.__tanks[tankId]["position"] = hex
         self.__map[HexToTuple(self.__tanks[tankId]["position"])] = tankId
+
+    def showMap(self) -> None:
+        '''
+        Shows the window on which the map is presented.
+        '''
+        self.__window.mainloop()
+    
+    def updateMap(self, gameState: jsonDict) -> None:
+        '''
+        Updates the map, i.e. checks whether there are any differences between local and server gamestate.
+        '''
+        for tankId, tankInfo in self.__tanks.items():
+            localTankPosition = tankInfo["position"]
+            serverTankPosition = gameState["vehicles"][tankId]["position"]
+            if HexToTuple(localTankPosition) != HexToTuple(serverTankPosition):
+                # Draw an empty cell.
+                cubicCoordinates = HexToTuple(localTankPosition)
+                offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
+                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill="white")
+                # Draw an occupied cell.
+                cubicCoordinates = HexToTuple(serverTankPosition)
+                offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
+                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[tankInfo["player_id"]])
+                # Update local tank position.
+                self.__tanks[tankId]["position"] = serverTankPosition

@@ -1,7 +1,9 @@
 from ServerConnection import ServerConnection
 from enum import IntEnum
 from Map import Map
+from tkinter import *
 import random
+import threading
 
 resultDict = dict[str, any]  # result dictionary type
 
@@ -126,31 +128,57 @@ class PlayerSession:
         self.connection.close()
 
 
-def gameLoop():
-    print("Name: ", end="")
-    name = input()
-    with PlayerSession(name) as session:
-        playerID = session.login()
-        gameState = session.getGameState()
+mapSemaphore1 = threading.Semaphore(0)
+mapSemaphore2 = threading.Semaphore(0)
 
-        map = Map(session.getMapInfo(), gameState)
+class GameThread(threading.Thread):
+    '''
+    Represents the logic of the game running as a separate thread.
+    '''
+    def __init__(self):
+        threading.Thread.__init__(self)
+        
+    def run(self):
+        try:
+            print("Name: ", end="")
+            name = input()
+            with PlayerSession(name) as session:
+                playerID = session.login()
+                gameState = session.getGameState()
 
-        while not gameState["finished"]:
-            if gameState["current_player_idx"] == playerID:
-                moves = map.getMoves("1")
-                moveToUse = random.randint(0, len(moves) - 1)
-                print(moves[moveToUse])
-                session.move({"vehicle_id": 1, "target": moves[moveToUse]})
-                map.move("1", moves[moveToUse])
-                session.nextTurn()
-            gameState = session.getGameState()
+                # Prepare arguments for Map creation.
+                mapList.append(session.getMapInfo())
+                mapList.append(gameState)
+                # Release the semaphore to that the map can be created.
+                mapSemaphore1.release()
 
-        print(gameState["winner"])
-        session.logout()
+                # Wait untill the map is ready.
+                mapSemaphore2.acquire()
+                map = mapList[2]
 
+                while not gameState["finished"]:
+                    if gameState["current_player_idx"] == playerID:
+                        # moves = map.getMoves("1")
+                        # moveToUse = random.randint(0, len(moves) - 1)
+                        # print(moves[moveToUse])
+                        # session.move({"vehicle_id": 1, "target": moves[moveToUse]})
+                        # map.move("1", moves[moveToUse])
+                        session.nextTurn()
+                    gameState = session.getGameState()
+                    map.updateMap(gameState)
 
+                print(gameState["winner"])
+                session.logout()
+        except Exception as e:
+            print(e)
+
+mapList = []
 if __name__ == "__main__":
-    try:
-        gameLoop()
-    except Exception as e:
-        print(e)
+    game = GameThread()
+    game.start()
+    # Wait untill the map is ready to be created.
+    mapSemaphore1.acquire()
+    gameMap = Map(mapList[0], mapList[1])
+    mapList.append(gameMap)
+    mapSemaphore2.release()
+    gameMap.showMap()
