@@ -1,6 +1,7 @@
 from ServerConnection import ServerConnection
 from enum import IntEnum
 from Map import Map
+from Tanks import Tanks
 from tkinter import *
 import random
 import threading
@@ -59,6 +60,8 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
+        data["game"] = "test102"
+        # data["num_players"] = 2
         result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])
@@ -146,6 +149,12 @@ class GameThread(threading.Thread):
                 playerID = session.login()
                 gameState = session.getGameState()
 
+                # find all player tanks and create a list that matches turn order
+                playerTanks = [None] * len(Tanks.turnOrder)
+                for tankId, tankData in gameState["vehicles"].items():
+                    if tankData["player_id"] == playerID:
+                        playerTanks[Tanks.turnOrder.index(tankData["vehicle_type"])] = tankId
+
                 # Prepare arguments for Map creation.
                 mapList.append(session.getMapInfo())
                 mapList.append(gameState)
@@ -158,14 +167,24 @@ class GameThread(threading.Thread):
 
                 while not gameState["finished"]:
                     if gameState["current_player_idx"] == playerID:
-                        # moves = map.getMoves("1")
-                        # moveToUse = random.randint(0, len(moves) - 1)
-                        # print(moves[moveToUse])
-                        # session.move({"vehicle_id": 1, "target": moves[moveToUse]})
-                        # map.move("1", moves[moveToUse])
-                        session.nextTurn()
+                        # perform movement with each tank
+                        for tankId in playerTanks:
+                            moves = map.getMoves(str(tankId))
+                            moveToUse = random.randint(0, len(moves) - 1)
+
+                            print(f"TankId {tankId}, Possible move count : {len(moves)}, Chosen move : {moves[moveToUse]}")
+                            session.move({"vehicle_id": tankId, "target": moves[moveToUse]})
+                            map.move(str(tankId), moves[moveToUse])
+                    else:
+                        gameActions = session.getGameActions()
+                        for action in gameActions["actions"]:
+                            if action["action_type"] == 101:
+                                actionData = action["data"]
+                                map.move(str(actionData["vehicle_id"]), actionData["target"])
+
+                    session.nextTurn()
                     gameState = session.getGameState()
-                    map.updateMap(gameState)
+                    # map.updateMap(gameState)
 
                 print(gameState["winner"])
                 session.logout()
@@ -174,6 +193,7 @@ class GameThread(threading.Thread):
 
 mapList = []
 if __name__ == "__main__":
+    # Start the game thread.
     game = GameThread()
     game.start()
     # Wait untill the map is ready to be created.

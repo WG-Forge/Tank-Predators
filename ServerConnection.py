@@ -28,6 +28,8 @@ class ServerConnection:
         '''
         self.__Socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__Socket.connect((self.serverAddress, self.serverPort))
+        self.__Socket.settimeout(30)
+
 
 
     def __sendRequest(self, actionCode : int, data : jsonDict = None) -> jsonDict:
@@ -60,12 +62,15 @@ class ServerConnection:
         resultCode, dataLen = struct.unpack("<II", response)
 
         # Receive the response dictionary (if there's one)
-        if dataLen > 0:
-            data = self.__Socket.recv(dataLen) # receive
-            data = data.decode("utf-8") # decode
+        data = ""
+        while dataLen > 0:
+            newData = self.__Socket.recv(dataLen) # receive
+            newData = newData.decode("utf-8") # decode
+            dataLen -= len(newData)
+            data += newData
+
+        if data:
             data = json.loads(data) # turn into dictionary
-        else:
-            data = ""
 
         # Return the response as a json dictionary
         return {"resultCode": resultCode, "data": data}
