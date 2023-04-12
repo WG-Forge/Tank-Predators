@@ -50,13 +50,15 @@ class Map():
         self.__canMoveTo = ["Empty", "Base"]
         self.__canMoveTrough = ["Empty", "Base"]
 
+        self.__playerCount = gameState["num_players"]
         self.__size = map["size"]
         self.__name = map["name"]
-        self.__initializeSpawnPoints(map["spawn_points"])
         self.__initializeBase(map["content"]["base"])
+        self.__initializeSpawnPoints(map["spawn_points"])
         self.__initializeTanks(gameState["vehicles"])
         self.__teamColors = ["orange", "purple", "blue"]
         self.__drawMap()
+
 
     def __initializeSpawnPoints(self, allPlayerSpawnPoints : jsonDict) -> None:
         '''
@@ -66,10 +68,16 @@ class Map():
         '''
         self.__spawnPoints = {}
 
-        for spawnPoints in allPlayerSpawnPoints:
-            for tankName, tankSpawnPoints in spawnPoints.items():
-                for tankSpawnPoint in tankSpawnPoints:
-                    self.__spawnPoints[HexToTuple(tankSpawnPoint)] = tankName
+        for playerSpawnPoints, playerIndex in zip(allPlayerSpawnPoints, range(self.__playerCount)):
+            tankId = 5 * playerIndex + 1
+            for tankSpawnPoints in playerSpawnPoints.values():
+                    self.__spawnPoints[str(tankId)] = tankSpawnPoints
+
+                    for spawnPoint in tankSpawnPoints:
+                        self.__map[HexToTuple(spawnPoint)] = str(tankId)
+                        self.__canMoveTrough.append(str(tankId))
+
+                    tankId += 1
 
 
     def __initializeBase(self, base : jsonDict) -> None:
@@ -91,10 +99,10 @@ class Map():
         :param vehicles: A dictionary containing the vehicle data for the map.
         '''
         self.__tanks = vehicles
+        self.__tankMap = {}
         
-        for id, tank in self.__tanks.items():
-            self.__canMoveTrough.append(id)
-            self.__map[HexToTuple(tank["position"])] = id
+        for tankId, tankInfo in self.__tanks.items():
+            self.__tankMap[HexToTuple(tankInfo["position"])] = tankId
 
 
     def __drawMap(self) -> None:
@@ -110,18 +118,18 @@ class Map():
         grid_set.clear()
 
         # draw tanks on spawn points
-        spawnColors = ['orange', 'purple', 'blue']
-        cnt = 0
-        colorIndex = 0
-        for spawnPointsTuple in self.__spawnPoints.keys():
-            offsetCoordinates = cube_to_offset(spawnPointsTuple[0], spawnPointsTuple[1])
-            self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=spawnColors[colorIndex])
-            cnt += 1
-            if cnt == 5:
-                cnt = 0
-                colorIndex += 1
 
-
+        for playerIndex in range(self.__playerCount):
+            startTankId = playerIndex * 5 + 1
+            for tankId in range(startTankId, startTankId + 5):
+                if str(tankId) in self.__tanks:
+                    position = HexToTuple(self.__tanks[str(tankId)]["position"])
+                    offsetCoordinates = cube_to_offset(position[0], position[1])
+                    self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[playerIndex])            
+                else:
+                    position = HexToTuple(self.__spawnPoints[str(tankId)][0])
+                    offsetCoordinates = cube_to_offset(position[0], position[1])
+                    self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[playerIndex])
 
     def isBase(self, hex : jsonDict) -> bool:
         '''
@@ -183,12 +191,12 @@ class Map():
 
         # Returns only the possible moves that the tank can move to
         result = []
-        for move in possibleMoves:
-            moveTuple = HexToTuple(move)
-            isSpawnPoint = self.__spawnPoints.get(moveTuple, None)
-            if not isSpawnPoint or (isSpawnPoint and self.__tanks[tankId]["spawn_position"] == move):
-                if self.__map.get(moveTuple, "Empty") in self.__canMoveTo:
-                    result.append(move)
+        for moveIndex in range(1, len(possibleMoves)):
+            moveTuple = HexToTuple(possibleMoves[moveIndex])
+            objectAtMove = self.__map.get(moveTuple, "Empty")
+            if not moveTuple in self.__tankMap:
+                if objectAtMove in self.__canMoveTo or objectAtMove == tankId:
+                    result.append(possibleMoves[moveIndex])
 
         return result
     
@@ -199,9 +207,9 @@ class Map():
         :param tankId: Id of the tank to get moves for.
         :param hex: Hex cell to move the tank to
         '''
-        self.__map.pop(HexToTuple(self.__tanks[tankId]["position"]))
-
         # Draw an empty cell.
+        self.__tankMap.pop(HexToTuple(self.__tanks[tankId]["position"]))
+
         cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
         leavingCellFill = 'green' if axial_distance(0, 0, cubicCoordinates[0], cubicCoordinates[1]) < 2 else 'white'
         offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
@@ -211,8 +219,9 @@ class Map():
         offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
         self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[(int(tankId) - 1) // 5])
 
+        self.__tankMap[HexToTuple(hex)] = tankId
         self.__tanks[tankId]["position"] = hex
-        self.__map[HexToTuple(self.__tanks[tankId]["position"])] = tankId
+
 
     def showMap(self) -> None:
         '''
@@ -232,9 +241,9 @@ class Map():
             if tankId not in self.__tanks:
                 print("New tank inserted")
                 self.__tanks[tankId] = tankInfo
-                tankPosition = HexToTuple(tankInfo["position"])
-                self.__map[tankPosition] = tankId
                 self.__canMoveTrough.append(tankId)
+                tankPosition = HexToTuple(tankInfo["position"])
+                self.__tankMap[tankPosition] = tankId
 
                 cubicCoordinates = tankPosition
                 offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
