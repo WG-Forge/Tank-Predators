@@ -53,7 +53,7 @@ class Map():
         self.__playerCount = gameState["num_players"]
         self.__size = map["size"]
         self.__name = map["name"]
-        self.__initializeBase(map["content"]["base"])
+        self.__initializeMapContent(map["content"])
         self.__initializeSpawnPoints(map["spawn_points"])
         self.__initializeTanks(gameState["vehicles"])
         self.__teamColors = ["orange", "purple", "blue"]
@@ -80,7 +80,7 @@ class Map():
                     tankId += 1
 
 
-    def __initializeBase(self, base : jsonDict) -> None:
+    def __initializeMapContent(self, mapContent : jsonDict) -> None:
         '''
         Initializes the base on the map.
 
@@ -88,8 +88,11 @@ class Map():
         '''
         self.__map = {}
 
-        for hex in base:
-            self.__map[HexToTuple(hex)] = "Base"
+        for baseHex in mapContent["base"]:
+            self.__map[HexToTuple(baseHex)] = "Base"
+
+        for obstacleHex in mapContent["obstacle"]:
+            self.__map[HexToTuple(obstacleHex)] = "Obstacle"
 
 
     def __initializeTanks(self, vehicles : jsonDict) -> None:
@@ -117,8 +120,7 @@ class Map():
         draw_grid(self.__grid, self.__size, 0, 0)
         grid_set.clear()
 
-        # draw tanks on spawn points
-
+        # draw tanks 
         for playerIndex in range(self.__playerCount):
             startTankId = playerIndex * 5 + 1
             for tankId in range(startTankId, startTankId + 5):
