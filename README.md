@@ -4,7 +4,7 @@
 Run PlayerSession.py, which will create one player thread that will do random movement with game map shown
 Player needs to add its name and the session will be started on preordered game name
 
-## Current version(Stage II):
+## Current version(Stage III):
 
 #### Game map interface:
 * White color squares are empty
