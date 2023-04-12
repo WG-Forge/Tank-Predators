@@ -179,7 +179,10 @@ class GameThread(threading.Thread):
                     # perform movement with each tank
                     for tankId in playerTanks:
                         moves = map.getMoves(str(tankId))
-                        moveToUse = random.randint(0, len(moves) - 1)
+                        if len(moves) > 0:
+                            moveToUse = random.randint(0, len(moves) - 1)
+                        else:
+                            continue
 
                         print(f"TankId {tankId}, Possible move count : {len(moves)}, Chosen move : {moves[moveToUse]}")
                         session.move({"vehicle_id": tankId, "target": moves[moveToUse]})
