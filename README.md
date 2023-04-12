@@ -1,7 +1,8 @@
 # Tank-Predators
 
 ## How to start the game:
-Run PlayerSession.py, which will create one player thread that will do random movement
+Run PlayerSession.py, which will create one player thread that will do random movement with game map shown
+Player needs to add its name and the session will be started on preordered game name
 
 ## Current version(Stage II):
 
