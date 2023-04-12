@@ -57,6 +57,10 @@ class Map():
         self.__initializeSpawnPoints(map["spawn_points"])
         self.__initializeTanks(gameState["vehicles"])
         self.__teamColors = ["orange", "purple", "blue"]
+        self.__colors = {
+            "Base" : "green",
+            "Obstacle" : "gray"
+        }
         self.__drawMap()
 
 
@@ -132,6 +136,11 @@ class Map():
                     position = HexToTuple(self.__spawnPoints[str(tankId)][0])
                     offsetCoordinates = cube_to_offset(position[0], position[1])
                     self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[playerIndex])
+
+        # draw everything else
+        for position, name in self.__map.items():
+            offsetCoordinates = cube_to_offset(position[0], position[1])
+            self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__colors.get(name, "white"))         
 
     def isBase(self, hex : jsonDict) -> bool:
         '''
@@ -213,7 +222,7 @@ class Map():
         self.__tankMap.pop(HexToTuple(self.__tanks[tankId]["position"]))
 
         cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
-        leavingCellFill = 'green' if axial_distance(0, 0, cubicCoordinates[0], cubicCoordinates[1]) < 2 else 'white'
+        leavingCellFill = self.__colors.get(self.__map.get(cubicCoordinates), "white")
         offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
         self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=leavingCellFill)
         # Draw an occupied cell.
@@ -267,7 +276,8 @@ class Map():
                 print(f"Position error: TankId:{tankId} is at:{localTankPosition} should be:{serverTankPosition}")
                 # Draw an empty cell.
                 cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
-                leavingCellFill = 'green' if axial_distance(0, 0, cubicCoordinates[0], cubicCoordinates[1]) < 2 else 'white'
+                #leavingCellFill = 'green' if axial_distance(0, 0, cubicCoordinates[0], cubicCoordinates[1]) < 2 else 'white'
+                leavingCellFill = self.__colors.get(self.__map.get(cubicCoordinates), "white")
                 offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
                 self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=leavingCellFill)
                 # Draw an occupied cell.
