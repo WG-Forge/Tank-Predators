@@ -82,9 +82,9 @@ class Map():
 
     def __initializeMapContent(self, mapContent : jsonDict) -> None:
         '''
-        Initializes the base on the map.
+        Initializes the map content.
 
-        :param base: A dictionary containing the base data for the map.
+        :param base: A dictionary containing the map content for the map.
         '''
         self.__map = {}
 
