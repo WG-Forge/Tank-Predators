@@ -60,8 +60,8 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        data["game"] = "test132"
-        data["num_players"] = 3
+        data["game"] = "test102"
+        # data["num_players"] = 2
         result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])

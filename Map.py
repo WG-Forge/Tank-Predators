@@ -109,14 +109,8 @@ class Map():
         draw_grid(self.__grid, self.__size, 0, 0)
         grid_set.clear()
 
-        # draw spawn points
+        # draw tanks on spawn points
         spawnColors = ['orange', 'purple', 'blue']
-        # for index, playerSpawnPoints in enumerate(self.__spawnPoints):
-        #     cellFill = spawnColors[index]
-        #     for spawnPoint in playerSpawnPoints.values():
-        #         cubicCoordinates = HexToTuple(spawnPoint[0])
-        #         offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-        #         self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=cellFill)
         cnt = 0
         colorIndex = 0
         for spawnPointsTuple in self.__spawnPoints.keys():
@@ -209,8 +203,9 @@ class Map():
 
         # Draw an empty cell.
         cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
+        leavingCellFill = 'green' if axial_distance(0, 0, cubicCoordinates[0], cubicCoordinates[1]) < 2 else 'white'
         offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill="white")
+        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=leavingCellFill)
         # Draw an occupied cell.
         cubicCoordinates = HexToTuple(hex)
         offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
@@ -260,9 +255,10 @@ class Map():
             if HexToTuple(localTankPosition) != HexToTuple(serverTankPosition):
                 print(f"Position error: TankId:{tankId} is at:{localTankPosition} should be:{serverTankPosition}")
                 # Draw an empty cell.
-                cubicCoordinates = HexToTuple(localTankPosition)
+                cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
+                leavingCellFill = 'green' if axial_distance(0, 0, cubicCoordinates[0], cubicCoordinates[1]) < 2 else 'white'
                 offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill="white")
+                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=leavingCellFill)
                 # Draw an occupied cell.
                 cubicCoordinates = HexToTuple(serverTankPosition)
                 offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
