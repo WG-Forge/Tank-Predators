@@ -60,8 +60,8 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        data["game"] = "test102"
-        # data["num_players"] = 2
+        data["game"] = "test103"
+        data["num_players"] = 1
         result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     # Start the game thread.
     game = GameThread()
     game.start()
-    # Wait untill the map is ready to be created.
+    # Wait until the map is ready to be created.
     mapSemaphore1.acquire()
     gameMap = Map(mapList[0], mapList[1])
     mapList.append(gameMap)
