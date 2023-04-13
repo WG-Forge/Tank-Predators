@@ -1,4 +1,5 @@
 from ServerConnection import ServerConnection
+from ServerConnection import Action
 from enum import IntEnum
 from Map import Map
 from Tanks import Tanks
@@ -60,8 +61,8 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        data["game"] = "test103"
-        data["num_players"] = 1
+        data["game"] = "test105"
+        data["num_players"] = 2
         result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])
@@ -79,8 +80,7 @@ class PlayerSession:
         The game's time slice is 10 seconds for test battles and 1 second for final battles. All players and observers
         must send the TURN action before the next turn can happen.
 
-        If original turn action timed out, we issue more request. If all of them time out, Exception is raised.
-        :return:
+        If original turn action timed out, we issue more requests. If all of them time out, Exception is raised.
         """
         for i in range(100):
             result = self.__handleResult(self.connection.turn())
@@ -134,13 +134,15 @@ class PlayerSession:
 mapSemaphore1 = threading.Semaphore(0)
 mapSemaphore2 = threading.Semaphore(0)
 
+
 class GameThread(threading.Thread):
     '''
     Represents the logic of the game running as a separate thread.
     '''
+
     def __init__(self):
         threading.Thread.__init__(self)
-        
+
     def run(self):
         print("Name: ", end="")
         name = input()
@@ -167,9 +169,9 @@ class GameThread(threading.Thread):
 
             while not gameState["finished"]:
                 # perform other player actions
-                gameActions = session.getGameActions()                   
+                gameActions = session.getGameActions()
                 for action in gameActions["actions"]:
-                    if action["action_type"] == 101 and action["player_id"] != playerID:
+                    if action["action_type"] == Action.MOVE and action["player_id"] != playerID:
                         actionData = action["data"]
                         map.move(str(actionData["vehicle_id"]), actionData["target"])
 
@@ -193,13 +195,14 @@ class GameThread(threading.Thread):
                 map.updateMap(gameState)
 
             # perform other player actions
-            gameActions = session.getGameActions()                     
+            gameActions = session.getGameActions()
             for action in gameActions["actions"]:
-                if action["action_type"] == 101:
+                if action["action_type"] == Action.MOVE:
                     actionData = action["data"]
                     map.move(str(actionData["vehicle_id"]), actionData["target"])
             print(gameState["winner"])
             session.logout()
+
 
 mapList = []
 if __name__ == "__main__":

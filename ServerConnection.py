@@ -78,7 +78,7 @@ class ServerConnection:
 
     def login(self, data : jsonDict) -> jsonDict:
         '''
-        Logs in the player to the server.
+        Logs in the player to the server.\n
 
         :param data: The login request data dictionary.
         The server expects to receive the following required values:

@@ -3,12 +3,13 @@ from Tanks import *
 from Utils import HexToTuple
 from Utils import TupleToHex
 from typing import List
-
-jsonDict = dict[str, any] # alias
 from HexGrid import *
 from tkinter import *
 
-class Map():
+jsonDict = dict[str, any]  # alias
+
+
+class Map:
     """
     A class representing a map in the game.
 
@@ -24,6 +25,8 @@ class Map():
             mapping hex coordinates to tile types.
         __tanks (Dict[str, jsonDict]): A dictionary representing the tanks on the map,
             mapping tank IDs to tank data.
+        __tankMap (Dict[Tuple[int,int,int], str]): A dictionary representing current positions of
+        tanks(x,y,z) in the game with the tankID as value
 
     Methods:
         __initializeSpawnPoints(allPlayerSpawnPoints: jsonDict) -> None:
@@ -40,7 +43,7 @@ class Map():
             Moves a given tank to a given hex cell.
     """
 
-    def __init__(self, map : jsonDict, gameState : jsonDict) -> None:
+    def __init__(self, map: jsonDict, gameState: jsonDict) -> None:
         """
         Initializes a Map object with the data provided by the game server.
         
@@ -60,13 +63,12 @@ class Map():
         self.__initializePathingOffsets()
         self.__teamColors = ["orange", "purple", "blue"]
         self.__colors = {
-            "Base" : "green",
-            "Obstacle" : "gray"
+            "Base": "green",
+            "Obstacle": "gray"
         }
         self.__drawMap()
 
-
-    def __initializeSpawnPoints(self, allPlayerSpawnPoints : jsonDict) -> None:
+    def __initializeSpawnPoints(self, allPlayerSpawnPoints: jsonDict) -> None:
         '''
         Initializes the spawn points on the map.
 
@@ -77,16 +79,15 @@ class Map():
         for playerSpawnPoints, playerIndex in zip(allPlayerSpawnPoints, range(self.__playerCount)):
             tankId = 5 * playerIndex + 1
             for tankSpawnPoints in playerSpawnPoints.values():
-                    self.__spawnPoints[str(tankId)] = tankSpawnPoints
+                self.__spawnPoints[str(tankId)] = tankSpawnPoints
 
-                    for spawnPoint in tankSpawnPoints:
-                        self.__map[HexToTuple(spawnPoint)] = str(tankId)
-                        self.__canMoveTrough.append(str(tankId))
+                for spawnPoint in tankSpawnPoints:
+                    self.__map[HexToTuple(spawnPoint)] = str(tankId)
+                    self.__canMoveTrough.append(str(tankId))
 
-                    tankId += 1
+                tankId += 1
 
-
-    def __initializeMapContent(self, mapContent : jsonDict) -> None:
+    def __initializeMapContent(self, mapContent: jsonDict) -> None:
         '''
         Initializes the map content.
 
@@ -100,8 +101,7 @@ class Map():
         for obstacleHex in mapContent["obstacle"]:
             self.__map[HexToTuple(obstacleHex)] = "Obstacle"
 
-
-    def __initializeTanks(self, vehicles : jsonDict) -> None:
+    def __initializeTanks(self, vehicles: jsonDict) -> None:
         '''
         Initializes the tanks on the map.
 
@@ -109,10 +109,9 @@ class Map():
         '''
         self.__tanks = vehicles
         self.__tankMap = {}
-        
+
         for tankId, tankInfo in self.__tanks.items():
             self.__tankMap[HexToTuple(tankInfo["position"])] = tankId
-
 
     def __initializePathingOffsets(self) -> None:
         """
@@ -130,16 +129,16 @@ class Map():
         startingPosition = (0, 0, 0)
 
         # Keep track of which positions have already been visited.
-        visited = set() 
+        visited = set()
         visited.add(startingPosition)
 
         # The '__pathingOffsets' list will store dictionaries representing reachable positions at each distance.
-        self.__pathingOffsets = [] 
-        self.__pathingOffsets.append({startingPosition : {startingPosition}}) 
+        self.__pathingOffsets = []
+        self.__pathingOffsets.append({startingPosition: {startingPosition}})
 
         # Perform breadth-first search to find all possible movement options
-        for currentDistance in range(1, maxDistance + 1):\
-            # Create a new dictionary for the current distance
+        for currentDistance in range(1, maxDistance + 1): \
+                # Create a new dictionary for the current distance
             self.__pathingOffsets.append({})
             # Iterate over each position in the previous distance to obtain current distance offsets.
             for position in self.__pathingOffsets[currentDistance - 1]:
@@ -155,8 +154,7 @@ class Map():
                     elif nextPosition in self.__pathingOffsets[currentDistance]:
                         self.__pathingOffsets[currentDistance][nextPosition].add(position)
 
-
-    def __setCell(self, position : tuple, fillColor : str) -> None:
+    def __setCell(self, position: tuple, fillColor: str) -> None:
         '''
         Sets a cell to a given color on the map.
 
@@ -164,8 +162,8 @@ class Map():
         :param fillColor: Color to fill the cell with
         '''
         offsetCoordinates = cube_to_offset(position[0], position[1])
-        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=fillColor)
-
+        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1,
+                            fill=fillColor)
 
     def __drawMap(self) -> None:
         '''
@@ -188,12 +186,11 @@ class Map():
             startTankId = playerIndex * 5 + 1
             for tankId in range(startTankId, startTankId + 5):
                 if str(tankId) in self.__tanks:
-                    self.__setCell(HexToTuple(self.__tanks[str(tankId)]["position"]), self.__teamColors[playerIndex])           
+                    self.__setCell(HexToTuple(self.__tanks[str(tankId)]["position"]), self.__teamColors[playerIndex])
                 else:
-                    self.__setCell(HexToTuple(self.__spawnPoints[str(tankId)][0]), self.__teamColors[playerIndex])      
+                    self.__setCell(HexToTuple(self.__spawnPoints[str(tankId)][0]), self.__teamColors[playerIndex])
 
-
-    def isBase(self, hex : jsonDict) -> bool:
+    def isBase(self, hex: jsonDict) -> bool:
         '''
         Determines whether a given hex cell is part of a base on the map.
 
@@ -203,11 +200,10 @@ class Map():
         '''
         if self.__map.get(HexToTuple(hex), "Empty") == "Base":
             return True
-        
-        return False
-    
 
-    def getMoves(self, tankId : str) -> List[jsonDict]:
+        return False
+
+    def getMoves(self, tankId: str) -> List[jsonDict]:
         '''
         Gets all possible moves for a given tank.
 
@@ -220,33 +216,33 @@ class Map():
         tank = Tanks.allTanks[self.__tanks[tankId]["vehicle_type"]]
         distance = tank["sp"]
 
-        startingPosition = HexToTuple(self.__tanks[tankId]["position"]) # Convert starting position to a tuple
-        visited = set() # Set to store visited offsets
-        visited.add((0, 0, 0)) # Can always reach 0 offset since the tank is already there
-        result = [] # List to store valid movement options
+        startingPosition = HexToTuple(self.__tanks[tankId]["position"])  # Convert starting position to a tuple
+        visited = set()  # Set to store visited offsets
+        visited.add((0, 0, 0))  # Can always reach 0 offset since the tank is already there
+        result = []  # List to store valid movement options
 
         # Perform breadth-first search to find all possible moves
         for currentDistance in range(1, distance + 1):
             # Iterate over all possible offsets for the current distance
             for offsetPosition, canBeReachedBy in self.__pathingOffsets[currentDistance].items():
-                    # Check if the offset can be reached from a previously reachable position
-                    if len(visited.intersection(canBeReachedBy)) > 0:
-                        currentPosition = tuple(x + y for x, y in zip(startingPosition, offsetPosition))
-                        # Check if the current position is within the boundaries of the game map
-                        if abs(currentPosition[0]) < self.__size and abs(currentPosition[1]) < self.__size and abs(currentPosition[2]) < self.__size:                      
-                            currentPositionObject = self.__map.get(currentPosition, "Empty")
-                            # Check if the tank can move through the current position
-                            if currentPositionObject in self.__canMoveTrough:
-                                visited.add(offsetPosition)
-                                # Check if the tank can move to the current position and if there is no other tank in that position
-                                if (currentPositionObject in self.__canMoveTo or currentPositionObject == tankId) and not currentPosition in self.__tankMap:
-                                    # Convert the current position to a dict representation and add it to the result list
-                                    result.append(TupleToHex(currentPosition))
+                # Check if the offset can be reached from a previously reachable position
+                if len(visited.intersection(canBeReachedBy)) > 0:
+                    currentPosition = tuple(x + y for x, y in zip(startingPosition, offsetPosition))
+                    # Check if the current position is within the boundaries of the game map
+                    if abs(currentPosition[0]) < self.__size and abs(currentPosition[1]) < self.__size and abs(
+                            currentPosition[2]) < self.__size:
+                        currentPositionObject = self.__map.get(currentPosition, "Empty")
+                        # Check if the tank can move through the current position
+                        if currentPositionObject in self.__canMoveTrough:
+                            visited.add(offsetPosition)
+                            # Check if the tank can move to the current position and if there is no other tank in that position
+                            if (currentPositionObject in self.__canMoveTo or currentPositionObject == tankId) and not currentPosition in self.__tankMap:
+                                # Convert the current position to a dict representation and add it to the result list
+                                result.append(TupleToHex(currentPosition))
 
         return result
-    
 
-    def move(self, tankId : str, position : jsonDict) -> None:
+    def move(self, tankId: str, position: jsonDict) -> None:
         '''
         Moves a given tank to a given hex cell
 
@@ -265,13 +261,11 @@ class Map():
 
         self.__tanks[tankId]["position"] = position
 
-
     def showMap(self) -> None:
         '''
         Shows the window on which the map is presented.
         '''
         self.__window.mainloop()
-    
 
     def updateMap(self, gameState: jsonDict) -> None:
         '''
@@ -289,7 +283,6 @@ class Map():
                 tankPosition = HexToTuple(tankInfo["position"])
                 self.__tankMap[tankPosition] = tankId
                 self.__setCell(tankPosition, self.__teamColors[(int(tankId) - 1) // 5])
-
 
     def testMap(self, gameState: jsonDict) -> None:
         '''
