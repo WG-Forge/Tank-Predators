@@ -1,6 +1,7 @@
 import itertools
 from Tanks import *
 from Utils import HexToTuple
+from Utils import TupleToHex
 from typing import List
 
 jsonDict = dict[str, any] # alias
@@ -169,56 +170,46 @@ class Map():
 
         :param tankId: The ID of the tank to get moves for.
 
-        :return: A list with all possible movement options.
+        :return: A list of JSON dictionaries representing all possible movement options.
         '''
 
-        # Gets the data for the tank and its speed points
+        # Get the tank type and its speed points
         tank = Tanks.allTanks[self.__tanks[tankId]["vehicle_type"]]
-        depth = tank["sp"]
+        distance = tank["sp"]
 
-        # Creates a queue to keep track of hex cells to visit
-        queue = []
-        queue.append(self.__tanks[tankId]["position"])
-        popsLeft = 1
-        possibleMoves = []
+        startingPosition = HexToTuple(self.__tanks[tankId]["position"]) # Convert starting position to a tuple
+        visited = set() # Set to store visited hexes
+        visited.add(startingPosition) 
+        result = [] # List to store valid movement options
 
-        while len(queue) > 0:
-            currentHex = queue.pop(0)
-            popsLeft -= 1
-            possibleMoves.append(currentHex)
+        fringes = [] # A list of lists of hexes representing positions at each distance from starting position
+        fringes.append([startingPosition]) # Add starting position as the first fringe (distance = 0)
 
-            if depth > 0:
-                # Checks the neighbors of the current hex cell and adds them to the queue if they are valid moves
+
+        # Perform breadth-first search to find all possible moves
+        for currentDistance in range(1, distance + 1):
+            fringes.append([]) # Add a new fringe for each distance
+
+            for position in fringes[currentDistance - 1]:
                 for permutation in self.__hexPermutations:
-                    nextHex = {}
-                    nextHex["x"] = currentHex["x"] + permutation[0]
-                    nextHex["y"] = currentHex["y"] + permutation[1]
-                    nextHex["z"] = currentHex["z"] + permutation[2]
+                    nextPosition = tuple(x + y for x, y in zip(position, permutation))
 
-                    if not nextHex in possibleMoves and not nextHex in queue and abs(nextHex["x"]) < self.__size and abs(nextHex["y"]) < self.__size and abs(nextHex["z"]) < self.__size:
-                        if self.__map.get(HexToTuple(nextHex), "Empty") in self.__canMoveTrough:
-                            queue.append(nextHex)
+                    # Check if the next position is within the boundaries of the game map
+                    if abs(nextPosition[0]) < self.__size and abs(nextPosition[1]) < self.__size and abs(nextPosition[2]) < self.__size:                      
+                        nextPositionObject = self.__map.get(nextPosition, "Empty")
 
-                # Out of cells at current distance       
-                if popsLeft == 0:
-                    depth -= 1
-                    popsLeft = len(queue)
-            else:
-                possibleMoves.extend(queue)
-                break
+                        # Check if it has not been visited before and if the tank can move through the next position
+                        if not nextPosition in visited and nextPositionObject in self.__canMoveTrough:
+                            fringes[currentDistance].append(nextPosition)
+                            visited.add(nextPosition)
 
-        # Returns only the possible moves that the tank can move to
-        result = []
-        for moveIndex in range(1, len(possibleMoves)):
-            moveTuple = HexToTuple(possibleMoves[moveIndex])
-            objectAtMove = self.__map.get(moveTuple, "Empty")
-            if not moveTuple in self.__tankMap:
-                if objectAtMove in self.__canMoveTo or objectAtMove == tankId:
-                    result.append(possibleMoves[moveIndex])
+                            # Check if the tank can move to the next position and if there is no other tank in that position
+                            if (nextPositionObject in self.__canMoveTo or nextPositionObject == tankId) and not nextPosition in self.__tankMap:
+                                result.append(TupleToHex(nextPosition))
 
         return result
     
-    
+
     def move(self, tankId : str, position : jsonDict) -> None:
         '''
         Moves a given tank to a given hex cell
