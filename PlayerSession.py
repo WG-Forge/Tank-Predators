@@ -169,7 +169,7 @@ class GameThread(threading.Thread):
                 # perform other player actions
                 gameActions = session.getGameActions()                   
                 for action in gameActions["actions"]:
-                    if action["action_type"] == 101:
+                    if action["action_type"] == 101 and action["player_id"] != playerID:
                         actionData = action["data"]
                         map.move(str(actionData["vehicle_id"]), actionData["target"])
 
