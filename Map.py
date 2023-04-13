@@ -57,6 +57,7 @@ class Map():
         self.__initializeMapContent(map["content"])
         self.__initializeSpawnPoints(map["spawn_points"])
         self.__initializeTanks(gameState["vehicles"])
+        self.__initializePathingOffsets()
         self.__teamColors = ["orange", "purple", "blue"]
         self.__colors = {
             "Base" : "green",
@@ -111,6 +112,48 @@ class Map():
         
         for tankId, tankInfo in self.__tanks.items():
             self.__tankMap[HexToTuple(tankInfo["position"])] = tankId
+
+
+    def __initializePathingOffsets(self) -> None:
+        """
+        Calculates pathing offsets to a distance of maximum travel distance of any tank.
+        Initializes a list of dictionaries representing all possible positions a tank can move to
+        in a given number of steps (i.e., distance) based on the maximum speed of any tank.
+
+        Each dictionary in the '__pathingOffsets' list contains position keys that map to a set of previous
+        positions that a tank can move from to reach the position. This information is used later to determine
+        possible movement options from any position.
+        """
+
+        # Get the maximum travel distance of any tank.
+        maxDistance = max(tank["sp"] for tank in Tanks.allTanks.values())
+        startingPosition = (0, 0, 0)
+
+        # Keep track of which positions have already been visited.
+        visited = set() 
+        visited.add(startingPosition)
+
+        # The '__pathingOffsets' list will store dictionaries representing reachable positions at each distance.
+        self.__pathingOffsets = [] 
+        self.__pathingOffsets.append({startingPosition : {startingPosition}}) 
+
+        # Perform breadth-first search to find all possible movement options
+        for currentDistance in range(1, maxDistance + 1):\
+            # Create a new dictionary for the current distance
+            self.__pathingOffsets.append({})
+            # Iterate over each position in the previous distance to obtain current distance offsets.
+            for position in self.__pathingOffsets[currentDistance - 1]:
+                for permutation in self.__hexPermutations:
+                    nextPosition = tuple(x + y for x, y in zip(position, permutation))
+                    # If the next position has not been visited before (is not reachable by another source),
+                    # add it to the current distance and add the position as its source.
+                    if not nextPosition in visited:
+                        self.__pathingOffsets[currentDistance][nextPosition] = {position}
+                        visited.add(nextPosition)
+                    # If the next position has already been added to the current distance (is already reachable by another source but at the same distance),
+                    # add the position to the existing set of source positions.
+                    elif nextPosition in self.__pathingOffsets[currentDistance]:
+                        self.__pathingOffsets[currentDistance][nextPosition].add(position)
 
 
     def __setCell(self, position : tuple, fillColor : str) -> None:
@@ -178,34 +221,27 @@ class Map():
         distance = tank["sp"]
 
         startingPosition = HexToTuple(self.__tanks[tankId]["position"]) # Convert starting position to a tuple
-        visited = set() # Set to store visited hexes
-        visited.add(startingPosition) 
+        visited = set() # Set to store visited offsets
+        visited.add((0, 0, 0)) # Can always reach 0 offset since the tank is already there
         result = [] # List to store valid movement options
-
-        fringes = [] # A list of lists of hexes representing positions at each distance from starting position
-        fringes.append([startingPosition]) # Add starting position as the first fringe (distance = 0)
-
 
         # Perform breadth-first search to find all possible moves
         for currentDistance in range(1, distance + 1):
-            fringes.append([]) # Add a new fringe for each distance
-
-            for position in fringes[currentDistance - 1]:
-                for permutation in self.__hexPermutations:
-                    nextPosition = tuple(x + y for x, y in zip(position, permutation))
-
-                    # Check if the next position is within the boundaries of the game map
-                    if abs(nextPosition[0]) < self.__size and abs(nextPosition[1]) < self.__size and abs(nextPosition[2]) < self.__size:                      
-                        nextPositionObject = self.__map.get(nextPosition, "Empty")
-
-                        # Check if it has not been visited before and if the tank can move through the next position
-                        if not nextPosition in visited and nextPositionObject in self.__canMoveTrough:
-                            fringes[currentDistance].append(nextPosition)
-                            visited.add(nextPosition)
-
-                            # Check if the tank can move to the next position and if there is no other tank in that position
-                            if (nextPositionObject in self.__canMoveTo or nextPositionObject == tankId) and not nextPosition in self.__tankMap:
-                                result.append(TupleToHex(nextPosition))
+            # Iterate over all possible offsets for the current distance
+            for offsetPosition, canBeReachedBy in self.__pathingOffsets[currentDistance].items():
+                    # Check if the offset can be reached from a previously reachable position
+                    if len(visited.intersection(canBeReachedBy)) > 0:
+                        currentPosition = tuple(x + y for x, y in zip(startingPosition, offsetPosition))
+                        # Check if the current position is within the boundaries of the game map
+                        if abs(currentPosition[0]) < self.__size and abs(currentPosition[1]) < self.__size and abs(currentPosition[2]) < self.__size:                      
+                            currentPositionObject = self.__map.get(currentPosition, "Empty")
+                            # Check if the tank can move through the current position
+                            if currentPositionObject in self.__canMoveTrough:
+                                visited.add(offsetPosition)
+                                # Check if the tank can move to the current position and if there is no other tank in that position
+                                if (currentPositionObject in self.__canMoveTo or currentPositionObject == tankId) and not currentPosition in self.__tankMap:
+                                    # Convert the current position to a dict representation and add it to the result list
+                                    result.append(TupleToHex(currentPosition))
 
         return result
     
