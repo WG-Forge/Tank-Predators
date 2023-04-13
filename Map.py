@@ -112,6 +112,17 @@ class Map():
             self.__tankMap[HexToTuple(tankInfo["position"])] = tankId
 
 
+    def __setCell(self, position : tuple, fillColor : str) -> None:
+        '''
+        Sets a cell to a given color on the map.
+
+        :param position: Position tuple of the cell to change
+        :param fillColor: Color to fill the cell with
+        '''
+        offsetCoordinates = cube_to_offset(position[0], position[1])
+        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=fillColor)
+
+
     def __drawMap(self) -> None:
         '''
         Draws the map in it's initial form.
@@ -124,23 +135,19 @@ class Map():
         draw_grid(self.__grid, self.__size, 0, 0)
         grid_set.clear()
 
+        # draw the map
+        for position, name in self.__map.items():
+            self.__setCell(position, self.__colors.get(name, "white"))
+
         # draw tanks 
         for playerIndex in range(self.__playerCount):
             startTankId = playerIndex * 5 + 1
             for tankId in range(startTankId, startTankId + 5):
                 if str(tankId) in self.__tanks:
-                    position = HexToTuple(self.__tanks[str(tankId)]["position"])
-                    offsetCoordinates = cube_to_offset(position[0], position[1])
-                    self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[playerIndex])            
+                    self.__setCell(HexToTuple(self.__tanks[str(tankId)]["position"]), self.__teamColors[playerIndex])           
                 else:
-                    position = HexToTuple(self.__spawnPoints[str(tankId)][0])
-                    offsetCoordinates = cube_to_offset(position[0], position[1])
-                    self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[playerIndex])
+                    self.__setCell(HexToTuple(self.__spawnPoints[str(tankId)][0]), self.__teamColors[playerIndex])      
 
-        # draw everything else
-        for position, name in self.__map.items():
-            offsetCoordinates = cube_to_offset(position[0], position[1])
-            self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__colors.get(name, "white"))         
 
     def isBase(self, hex : jsonDict) -> bool:
         '''
@@ -211,7 +218,8 @@ class Map():
 
         return result
     
-    def move(self, tankId : str, hex : jsonDict) -> None:
+    
+    def move(self, tankId : str, position : jsonDict) -> None:
         '''
         Moves a given tank to a given hex cell
 
@@ -219,19 +227,16 @@ class Map():
         :param hex: Hex cell to move the tank to
         '''
         # Draw an empty cell.
-        self.__tankMap.pop(HexToTuple(self.__tanks[tankId]["position"]))
+        currentPosition = HexToTuple(self.__tanks[tankId]["position"])
+        self.__setCell(currentPosition, self.__colors.get(self.__map.get(currentPosition), "white"))
+        self.__tankMap.pop(currentPosition)
 
-        cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
-        leavingCellFill = self.__colors.get(self.__map.get(cubicCoordinates), "white")
-        offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=leavingCellFill)
         # Draw an occupied cell.
-        cubicCoordinates = HexToTuple(hex)
-        offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-        self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[(int(tankId) - 1) // 5])
+        newPosition = HexToTuple(position)
+        self.__setCell(newPosition, self.__teamColors[(int(tankId) - 1) // 5])
+        self.__tankMap[newPosition] = tankId
 
-        self.__tankMap[HexToTuple(hex)] = tankId
-        self.__tanks[tankId]["position"] = hex
+        self.__tanks[tankId]["position"] = position
 
 
     def showMap(self) -> None:
@@ -240,6 +245,7 @@ class Map():
         '''
         self.__window.mainloop()
     
+
     def updateMap(self, gameState: jsonDict) -> None:
         '''
         This method checks if there are any new tanks in the game state that are not present in the local tanks list.
@@ -255,10 +261,7 @@ class Map():
                 self.__canMoveTrough.append(tankId)
                 tankPosition = HexToTuple(tankInfo["position"])
                 self.__tankMap[tankPosition] = tankId
-
-                cubicCoordinates = tankPosition
-                offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[(int(tankId) - 1) // 5])
+                self.__setCell(tankPosition, self.__teamColors[(int(tankId) - 1) // 5])
 
 
     def testMap(self, gameState: jsonDict) -> None:
@@ -274,17 +277,4 @@ class Map():
             serverTankPosition = tankInfo["position"]
             if HexToTuple(localTankPosition) != HexToTuple(serverTankPosition):
                 print(f"Position error: TankId:{tankId} is at:{localTankPosition} should be:{serverTankPosition}")
-                # Draw an empty cell.
-                cubicCoordinates = HexToTuple(self.__tanks[tankId]["position"])
-                #leavingCellFill = 'green' if axial_distance(0, 0, cubicCoordinates[0], cubicCoordinates[1]) < 2 else 'white'
-                leavingCellFill = self.__colors.get(self.__map.get(cubicCoordinates), "white")
-                offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=leavingCellFill)
-                # Draw an occupied cell.
-                cubicCoordinates = HexToTuple(serverTankPosition)
-                offsetCoordinates = cube_to_offset(cubicCoordinates[0], cubicCoordinates[1])
-                self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1, fill=self.__teamColors[(int(tankId) - 1) // 5])
-                # Update local tank position.
-                self.__map.pop(HexToTuple(localTankPosition)) 
-                self.__tanks[tankId]["position"] = serverTankPosition
-                self.__map[HexToTuple(serverTankPosition)] = tankId
+                self.move(tankId, serverTankPosition)
