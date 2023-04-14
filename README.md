@@ -1,19 +1,22 @@
 # Tank-Predators
 
 ## How to start the game:
-Run PlayerSession.py, which will create one player thread that will do random movement with game map shown
-Player needs to add its name and the session will be started on preordered game name
+Run PlayerSession.py, enter your name and you will join preordered session. You can change session parameters in PlayerSession.login method.
 
-## Current version(Stage III):
+## Current version(finished Stage III):
+
+#### Game Logic:
+* Random choice between shooting at random opponent in range and random movement on the map
 
 #### Game map interface:
-* White color squares are empty
-* Green color squares are the central base
-* Other colors are tanks of the teams, each their own color
+* White color tiles are empty
+* Green color tiles are the central base
+* Gray color tiles are obstacles
+* Other colors are tanks of the teams, each their own color (orange, purple and blue)
 
-#### Game logic:
-* Random tank movement with guaranteed legal moves
-* Information about all tanks classes, movement depending on the class type
+#### Game mechanics:
+* Tank movement with guaranteed legal moves
+* Tank shooting with rule of neutrality and different range of shooting depending on the tank type
 
 #### Server connection:
 * ServerConnection.py which works as a Request handler between client(player) and server(wargaming forge) 
