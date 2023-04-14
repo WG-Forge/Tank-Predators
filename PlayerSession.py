@@ -1,10 +1,9 @@
-
+import Shooting
 from ServerConnection import ServerConnection
 from ServerConnection import Action
 from enum import IntEnum
 from Map import Map
 from Tanks import Tanks
-from tkinter import *
 import GameData
 import random
 import threading
@@ -45,13 +44,13 @@ class PlayerSession:
         """
         Handles error codes and returns data if request was successful
         :param result: result dict from action request with "resultCode" and "data" keys
-        :return: result["data"] if the result was Okay,
+        :return: result["data"] if the result was okay,
         None if it was TIMEOUT error.
         Exception is raised for other error types.
         """
         code = result["resultCode"]
         if code == Result.BAD_COMMAND or code == Result.INAPPROPRIATE_GAME_STATE or code == Result.ACCESS_DENIED or code == Result.INTERNAL_SERVER_ERROR:
-            raise Exception("ERROR: " + (Result(code)).name)  # example: ERROR: BAD_COMMAND
+            raise Exception("ERROR: " + (Result(code)).name + "\n" + result["data"]["error_message"])
         elif code == Result.TIMEOUT:
             return None  # Action should be requested again
         return result["data"]
@@ -63,8 +62,9 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        data["game"] = "test100"
-        data["num_players"] = 1
+        data["game"] = "testtesttest"
+        data["num_turns"] = 100
+        data["num_players"] = 3
         result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])
@@ -197,18 +197,24 @@ class GameThread(threading.Thread):
 
                 map.testMap()
 
-                if GameData.gameState["current_player_idx"] == GameData.playerID:
-                    # perform movement with each tank
+                if GameData.gameState["current_player_idx"] == GameData.playerID:  # our turn
                     for tankId in GameData.playerTanks:
                         moves = map.getMoves(str(tankId))
-                        if len(moves) > 0:
-                            moveToUse = random.randint(0, len(moves) - 1)
-                        else:
-                            continue
+                        tanksInRange = Shooting.getTanksInRange(tankId)
 
-                        print(f"TankId {tankId}, Possible move count : {len(moves)}, Chosen move : {moves[moveToUse]}")
-                        session.move({"vehicle_id": tankId, "target": moves[moveToUse]})
-                        map.move(str(tankId), moves[moveToUse])
+                        action = random.randint(0, 1)  # 0 -> move, 1 -> shoot
+                        if not tanksInRange:
+                            action = 0  # no one to shoot so move
+
+                        if action == 0 and len(moves) > 0:
+                            moveToUse = random.randint(0, len(moves) - 1)
+                           #  print(f"TankId {tankId}, Possible move count : {len(moves)}, Chosen move : {moves[moveToUse]}")
+                            session.move({"vehicle_id": tankId, "target": moves[moveToUse]})
+                            map.move(str(tankId), moves[moveToUse])
+                        elif action == 1 and tanksInRange:
+                            targetId, targetData = random.choice(list(tanksInRange.items()))
+                            print(f"TankId {tankId}, tanks in range : {len(tanksInRange)}, Chosen tank : {targetId}")
+                            session.shoot({"vehicle_id": int(tankId), "target": targetData["position"]})
 
                 session.nextTurn()
                 GameData.gameState = session.getGameState()

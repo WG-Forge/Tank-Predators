@@ -104,8 +104,9 @@ def getTanksInRange(tankID: int) -> dict[str, any]:
     for pid, vehicle in GameData.gameState["vehicles"].items():
         if vehicle["player_id"] == GameData.playerID:  # we don't need information about our own tanks
             continue
-        canShoot, coords = __inRange(tankType, tankCoord, vehicle["position"])
+        canShoot, coord = __inRange(tankType, tankCoord, vehicle["position"])
         if canShoot:  # add tank to the result dict
-            inRange[pid]["position"] = coords
+            inRange[pid] = {}
+            inRange[pid]["position"] = coord
             inRange[pid]["health"] = vehicle["health"]
     return inRange
