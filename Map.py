@@ -259,6 +259,14 @@ class Map:
 
         self.__tanks[tankId]["position"] = position
 
+    def respawn(self, tankId: str) -> None:
+        '''
+        Moves a given tank to spawn position
+
+        :param tankId: Id of the tank to get moves for.
+        '''
+        self.move(tankId, self.__tanks[tankId]["spawn_position"])
+        
     def showMap(self) -> None:
         '''
         Shows the window on which the map is presented.
