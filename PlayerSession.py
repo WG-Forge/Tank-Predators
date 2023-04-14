@@ -61,7 +61,7 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        data["game"] = "test104"
+        data["game"] = "test100"
         data["num_players"] = 1
         result = self.__handleResult(self.connection.login(data))
 
@@ -121,8 +121,29 @@ class PlayerSession:
         """
         return self.__handleResult(self.connection.game_state())
 
-    def move(self, message) -> resultDict:
-        return self.__handleResult(self.connection.move(message))
+    def move(self, data) -> resultDict:
+        """
+        Changes vehicle position.
+        :param data:
+        The server expects to receive the following required values:
+        vehicle_id - id of vehicle.
+        target - coordinates of hex.
+        """
+        return self.__handleResult(self.connection.move(data))
+
+    def shoot(self, data):
+        """
+        Shoot to target position.
+
+        :param data:
+        The server expects to receive following required values:
+        vehicle_id - id of vehicle.
+        target - coordinates of hex.
+        example: {"vehicle_id":5,"target":{"x":-1,"y":1,"z":0}}
+        For AT-SPG target means the direction of shooting,
+        and it must be neighboring the AT-SPG's position hex.
+        """
+        return self.__handleResult(self.connection.shoot(data))
 
     def __exit__(self, *args):
         """

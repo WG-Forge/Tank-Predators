@@ -29,6 +29,9 @@ def neutralityCheck(playerID: int, opponentID: int, gameState: resultDict) -> Bo
 
 
 def __inRange(vehicleType: string, playerCoord: Dict[str, int], opponentCoord: Dict[str, int]) -> Bool:
+    """
+    Note: AT_SPG cannot shoot through obstacles
+    """
     dst = distance(playerCoord, opponentCoord)
     # TODO obstacles lowers firing range
     if vehicleType == "spg":
@@ -47,7 +50,8 @@ def __inRange(vehicleType: string, playerCoord: Dict[str, int], opponentCoord: D
 
 def getTanksInRange(playerID: int, tankID: int, gameState: resultDict) -> Dict[str, Any]:
     """
-    Returns information about all tanks in the range of the tank with given id
+    Returns information about all tanks in the range of the tank with given id.
+    Note: For AT_SPG it returns tile neighboring the AT-SPG's position hex that represents direction of shooting.
     :return: Dictionary with tankID as key and with fields:
     position: {x, y, z} -> coordinates,
     health: int -> remaining tank health
