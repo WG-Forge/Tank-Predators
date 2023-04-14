@@ -1,4 +1,5 @@
 import itertools
+import GameData
 from Tanks import *
 from Utils import HexToTuple
 from Utils import TupleToHex
@@ -43,23 +44,20 @@ class Map:
             Moves a given tank to a given hex cell.
     """
 
-    def __init__(self, map: jsonDict, gameState: jsonDict) -> None:
+    def __init__(self) -> None:
         """
         Initializes a Map object with the data provided by the game server.
-        
-        :param map: A dictionary containing the map data.
-        :param gameState: A dictionary containing the current state of the game.
         """
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__canMoveTo = ["Empty", "Base"]
         self.__canMoveTrough = ["Empty", "Base"]
 
-        self.__playerCount = gameState["num_players"]
-        self.__size = map["size"]
-        self.__name = map["name"]
-        self.__initializeMapContent(map["content"])
-        self.__initializeSpawnPoints(map["spawn_points"])
-        self.__initializeTanks(gameState["vehicles"])
+        self.__playerCount = GameData.gameState["num_players"]
+        self.__size = GameData.mapInfo["size"]
+        self.__name = GameData.mapInfo["name"]
+        self.__initializeMapContent(GameData.mapInfo["content"])
+        self.__initializeSpawnPoints(GameData.mapInfo["spawn_points"])
+        self.__initializeTanks(GameData.gameState["vehicles"])
         self.__initializePathingOffsets()
         self.__teamColors = ["orange", "purple", "blue"]
         self.__colors = {
@@ -267,13 +265,13 @@ class Map:
         '''
         self.__window.mainloop()
 
-    def updateMap(self, gameState: jsonDict) -> None:
+    def updateMap(self) -> None:
         '''
         This method checks if there are any new tanks in the game state that are not present in the local tanks list.
         If a new tank is found, it is added to the local tanks list, and its position is added to the map.
         Additionally, the tank is added to the list of tanks that can be moved through.
         '''
-        for tankId, tankInfo in gameState["vehicles"].items():
+        for tankId, tankInfo in GameData.gameState["vehicles"].items():
             tankId = str(tankId)
 
             if tankId not in self.__tanks:
@@ -284,13 +282,13 @@ class Map:
                 self.__tankMap[tankPosition] = tankId
                 self.__setCell(tankPosition, self.__teamColors[(int(tankId) - 1) // 5])
 
-    def testMap(self, gameState: jsonDict) -> None:
+    def testMap(self) -> None:
         '''
         This method compares the positions of the tanks in the game state with their positions in the local tanks list.
         If a tank is found to be miss positioned, its cell on the grid is updated and a message is sent to the console.
         The local tanks list and the map are also updated with the correct position of the tank.
         '''
-        for tankId, tankInfo in gameState["vehicles"].items():
+        for tankId, tankInfo in GameData.gameState["vehicles"].items():
             tankId = str(tankId)
 
             localTankPosition = self.__tanks[tankId]["position"]

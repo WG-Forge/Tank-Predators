@@ -4,6 +4,7 @@ from enum import IntEnum
 from Map import Map
 from Tanks import Tanks
 from tkinter import *
+import GameData
 import random
 import threading
 
@@ -168,39 +169,36 @@ class GameThread(threading.Thread):
         print("Name: ", end="")
         name = input()
         with PlayerSession(name) as session:
-            playerID = session.login()
-            print(playerID)
-            gameState = session.getGameState()
+            GameData.playerID = session.login()
+            print(GameData.playerID)
+            GameData.gameState = session.getGameState()
 
-            # find all player tanks and create a list that matches turn order
-            playerTanks = [None] * len(Tanks.turnOrder)  # TODO : class for general data
-            for tankId, tankData in gameState["vehicles"].items():
-                if tankData["player_id"] == playerID:
-                    playerTanks[Tanks.turnOrder.index(tankData["vehicle_type"])] = tankId
+            for tankId, tankData in GameData.gameState["vehicles"].items():
+                if tankData["player_id"] == GameData.playerID:
+                    GameData.playerTanks[Tanks.turnOrder.index(tankData["vehicle_type"])] = tankId
 
             # Prepare arguments for Map creation.
-            mapList.append(session.getMapInfo())
-            mapList.append(gameState)
+            GameData.mapInfo = session.getMapInfo()
             # Release the semaphore to that the map can be created.
             mapSemaphore1.release()
 
             # Wait until the map is ready.
             mapSemaphore2.acquire()
-            map = mapList[2]
+            map = GameData.gameMap
 
-            while not gameState["finished"]:
+            while not GameData.gameState["finished"]:
                 # perform other player actions
                 gameActions = session.getGameActions()
                 for action in gameActions["actions"]:
-                    if action["action_type"] == Action.MOVE and action["player_id"] != playerID:
+                    if action["action_type"] == Action.MOVE and action["player_id"] != GameData.playerID:
                         actionData = action["data"]
                         map.move(str(actionData["vehicle_id"]), actionData["target"])
 
-                map.testMap(gameState)
+                map.testMap()
 
-                if gameState["current_player_idx"] == playerID:
+                if GameData.gameState["current_player_idx"] == GameData.playerID:
                     # perform movement with each tank
-                    for tankId in playerTanks:
+                    for tankId in GameData.playerTanks:
                         moves = map.getMoves(str(tankId))
                         if len(moves) > 0:
                             moveToUse = random.randint(0, len(moves) - 1)
@@ -212,8 +210,8 @@ class GameThread(threading.Thread):
                         map.move(str(tankId), moves[moveToUse])
 
                 session.nextTurn()
-                gameState = session.getGameState()
-                map.updateMap(gameState)
+                GameData.gameState = session.getGameState()
+                map.updateMap()
 
             # perform other player actions
             gameActions = session.getGameActions()
@@ -221,18 +219,16 @@ class GameThread(threading.Thread):
                 if action["action_type"] == Action.MOVE:
                     actionData = action["data"]
                     map.move(str(actionData["vehicle_id"]), actionData["target"])
-            print(gameState["winner"])
+            print(GameData.gameState["winner"])
             session.logout()
 
 
-mapList = []
 if __name__ == "__main__":
     # Start the game thread.
     game = GameThread()
     game.start()
     # Wait until the map is ready to be created.
     mapSemaphore1.acquire()
-    gameMap = Map(mapList[0], mapList[1])
-    mapList.append(gameMap)
+    GameData.gameMap = Map()
     mapSemaphore2.release()
-    gameMap.showMap()
+    GameData.gameMap.showMap()
