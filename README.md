@@ -1,5 +1,10 @@
 # Tank-Predators
 
+#### Team members:
+Miloš Kovačević 
+Pavle Prodanovic 
+Armandas Puidokas
+
 ## How to start the game:
 Run PlayerSession.py, enter your name and you will join preordered session. You can change session parameters in PlayerSession.login() method.
 Python version recommended: 3.10
