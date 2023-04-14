@@ -1,9 +1,9 @@
 # Tank-Predators
 
 #### Team members:
-Miloš Kovačević 
-Pavle Prodanovic 
-Armandas Puidokas
+Miloš Kovačević <br/>
+Pavle Prodanovic <br/>
+Armandas Puidokas <br/>
 
 ## How to start the game:
 Run PlayerSession.py, enter your name and you will join preordered session. You can change session parameters in PlayerSession.login() method.
