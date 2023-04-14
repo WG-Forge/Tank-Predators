@@ -1,3 +1,4 @@
+
 from ServerConnection import ServerConnection
 from ServerConnection import Action
 from enum import IntEnum

@@ -27,7 +27,7 @@ class Map:
         __tanks (Dict[str, jsonDict]): A dictionary representing the tanks on the map,
             mapping tank IDs to tank data.
         __tankMap (Dict[Tuple[int,int,int], str]): A dictionary representing current positions of
-        tanks(x,y,z) in the game with the tankID as value
+         tanks (x,y,z) in the game with the tankID as value
 
     Methods:
         __initializeSpawnPoints(allPlayerSpawnPoints: jsonDict) -> None:
@@ -245,7 +245,7 @@ class Map:
         Moves a given tank to a given hex cell
 
         :param tankId: Id of the tank to get moves for.
-        :param hex: Hex cell to move the tank to
+        :param position: Hex cell to move the tank to
         '''
         # Draw an empty cell.
         currentPosition = HexToTuple(self.__tanks[tankId]["position"])
