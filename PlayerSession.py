@@ -152,7 +152,7 @@ class GameThread(threading.Thread):
             gameState = session.getGameState()
 
             # find all player tanks and create a list that matches turn order
-            playerTanks = [None] * len(Tanks.turnOrder)
+            playerTanks = [None] * len(Tanks.turnOrder)  # TODO : class for general data
             for tankId, tankData in gameState["vehicles"].items():
                 if tankData["player_id"] == playerID:
                     playerTanks[Tanks.turnOrder.index(tankData["vehicle_type"])] = tankId
@@ -163,7 +163,7 @@ class GameThread(threading.Thread):
             # Release the semaphore to that the map can be created.
             mapSemaphore1.release()
 
-            # Wait untill the map is ready.
+            # Wait until the map is ready.
             mapSemaphore2.acquire()
             map = mapList[2]
 
