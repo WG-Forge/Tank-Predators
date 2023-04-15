@@ -8,6 +8,3 @@ class HEAVY_TANK(Tank):
 
     def __init__(self, spawnPosition: positionTuple, position: positionTuple, currentHealth: int = None) -> None:
         super().__init__(spawnPosition, position, Settings.HEAVY_TANK, currentHealth)
-  
-    def _initializeShooting(self):
-        self.components["shooting"] = CurvedShootingComponent(Settings.HEAVY_TANK["minAttackRange"], Settings.HEAVY_TANK["maxAttackRange"], Settings.HEAVY_TANK["damage"])

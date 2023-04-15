@@ -8,6 +8,3 @@ class LIGHT_TANK(Tank):
 
     def __init__(self, spawnPosition: positionTuple, position: positionTuple, currentHealth: int = None) -> None:
         super().__init__(spawnPosition, position, Settings.LIGHT_TANK, currentHealth)
-  
-    def _initializeShooting(self):
-        self.components["shooting"] = CurvedShootingComponent(Settings.LIGHT_TANK["minAttackRange"], Settings.LIGHT_TANK["maxAttackRange"], Settings.LIGHT_TANK["damage"])

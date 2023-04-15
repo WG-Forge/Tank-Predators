@@ -8,6 +8,3 @@ class SPG(Tank):
 
     def __init__(self, spawnPosition: positionTuple, position: positionTuple, currentHealth: int = None) -> None:
         super().__init__(spawnPosition, position, Settings.SPG, currentHealth)
-
-    def _initializeShooting(self):
-        self.components["shooting"] = CurvedShootingComponent(Settings.SPG["minAttackRange"], Settings.SPG["maxAttackRange"], Settings.SPG["damage"])
