@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from TankComponents.HealthComponent import HealthComponent
 from TankComponents.PositionComponent import PositionComponent
 from TankComponents.DestructionRewardComponent import DestructionRewardComponent
+from TankComponents.BaseCaptureComponent import BaseCaptureComponent
 from Aliases import positionTuple
 
 class Tank(ABC):
@@ -24,6 +25,7 @@ class Tank(ABC):
         self._initializePosition(spawnPosition, position, settings["sp"])
         self._initializeDestructionReward(settings["destructionPoints"])
         self._initializeHealth(settings["hp"], currentHealth)
+        self._initializeCapture()
         self._initializeShooting()
 
     def _initializePosition(self, spawnPosition: positionTuple, position: positionTuple, speed: int):
@@ -53,6 +55,12 @@ class Tank(ABC):
                             If not provided, it will default to the maximum health value.
         """
         self.components["health"] = HealthComponent(maxHealth, currentHealth)
+
+    def _initializeCapture(self):
+        """
+        Initializes the capture component for the tank.
+        """
+        self.components["capture"] = BaseCaptureComponent()
 
     @abstractmethod
     def _initializeShooting(self):
