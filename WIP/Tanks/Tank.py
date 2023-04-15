@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from TankComponents.HealthComponent import HealthComponent
 from TankComponents.PositionComponent import PositionComponent
+from TankComponents.DestructionRewardComponent import DestructionRewardComponent
 from Aliases import positionTuple
 
 class Tank(ABC):
@@ -9,31 +10,39 @@ class Tank(ABC):
     """
     __slots__ = ("components",)
 
-    def __init__(self, spawnPosition: positionTuple, position: positionTuple, speed: int, maxHealth: int, currentHealth: int = None) -> None:
+    def __init__(self, spawnPosition: positionTuple, position: positionTuple, settings: dict[str, any], currentHealth: int = None) -> None:
         """
         Initializes a new instance of the Tank class.
 
         :param spawnPosition: A tuple representing the spawn position of the tank.
         :param position: A tuple representing the current position of the tank.
-        :param speed: An integer representing the speed of the tank.
-        :param maxHealth: An integer representing the maximum health value of the tank.
+        :param settings: A dictionary containing all the settings of the tank entity.
         :param currentHealth: Optional. An integer representing the current health value of the tank.
                             If not provided, it will default to the maximum health value.
         """
         self.components = {}
-        self._initializeMovement(spawnPosition, position, speed)
-        self._initializeHealth(maxHealth, currentHealth)
+        self._initializePosition(spawnPosition, position, settings["sp"])
+        self._initializeDestructionReward(settings["destructionPoints"])
+        self._initializeHealth(settings["hp"], currentHealth)
         self._initializeShooting()
 
-    def _initializeMovement(self, spawnPosition: positionTuple, position: positionTuple, speed: int):
+    def _initializePosition(self, spawnPosition: positionTuple, position: positionTuple, speed: int):
         """
-        Initializes the movement component for the tank.
+        Initializes the position component for the tank.
 
         :param spawnPosition: A tuple representing the spawn position of the tank.
         :param position: A tuple representing the current position of the tank.
         :param speed: An integer representing the speed of the tank.
         """
-        self.components["movement"] = PositionComponent(spawnPosition, position, speed)
+        self.components["position"] = PositionComponent(spawnPosition, position, speed)
+
+    def _initializeDestructionReward(self, destructionReward: int):
+        """
+        Initializes the destruction reward component for the tank.
+
+        :param destructionReward: An integer representing the reward for destroying the tank.
+        """
+        self.components["destructionReward"] = DestructionRewardComponent(destructionReward)
 
     def _initializeHealth(self, maxHealth: int, currentHealth: int = None):
         """
