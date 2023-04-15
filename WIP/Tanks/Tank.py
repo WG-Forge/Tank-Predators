@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from TankComponents.HealthComponent import HealthComponent
-from TankComponents.MovementComponent import MovementComponent
+from TankComponents.PositionComponent import PositionComponent
 from Aliases import positionTuple
 
 class Tank(ABC):
@@ -33,7 +33,7 @@ class Tank(ABC):
         :param position: A tuple representing the current position of the tank.
         :param speed: An integer representing the speed of the tank.
         """
-        self.components["movement"] = MovementComponent(spawnPosition, position, speed)
+        self.components["movement"] = PositionComponent(spawnPosition, position, speed)
 
     def _initializeHealth(self, maxHealth: int, currentHealth: int = None):
         """

@@ -1,15 +1,15 @@
 from Aliases import positionTuple
 
-class MovementComponent:
+class PositionComponent:
     """
-    Component for handling movement of an entity.
+    Component for handling the position of an entity.
     """
 
     __slots__ = ("__spawnPosition", "__position", "__speed")
 
     def __init__(self, spawnPosition : positionTuple, position : positionTuple, speed: int) -> None:
         """
-        Initializes a new instance of the MovementComponent class.
+        Initializes a new instance of the PositionComponent class.
 
         :param spawnPosition: The spawn position of the entity.
         :param position: The current position of the entity.
