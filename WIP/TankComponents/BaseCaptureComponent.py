@@ -20,7 +20,7 @@ class BaseCaptureComponent:
 
     def exitCaptureZone(self) -> None:
         """
-        Marks the entity as exiting the capture zone and resets the captured points to 0.
+        Marks the entity as exiting the capture zone.
         """
         self.__capturing = False
 
