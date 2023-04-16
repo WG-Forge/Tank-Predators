@@ -1,5 +1,7 @@
 from TankManagement.TankManager import TankManager
+from TankManagement.TankAddedEvent import TankAddedEvent
 from Aliases import jsonDict
+from typing import Callable
 
 class TankManagementSystem:
     """
@@ -11,7 +13,7 @@ class TankManagementSystem:
         Initializes the TankManagementSystem object.
         """
         self.__tankManager = TankManager()
-        self.__observers = []
+        self.__tankAddedEvent = TankAddedEvent()
 
     def addTank(self, tankId: str, tankData: jsonDict) -> None:
         """
@@ -21,7 +23,7 @@ class TankManagementSystem:
         :param tankData: The data of the tank to add.
         """
         self.__tankManager.addTank(tankId, tankData)
-        self.__notifyObservers(tankId, self.__tankManager.getTank(tankId))
+        self.__tankAddedEvent.raiseEvent(tankId, self.__tankManager.getTank(tankId))
         
     def hasTank(self, tankId: str) -> bool:
         """
@@ -41,20 +43,18 @@ class TankManagementSystem:
         """
         return self.__tankManager.getTank(tankId)
     
-    def addObserver(self, observer: object) -> None:
+    def addTankAddedHandler(self, handler: Callable[[str, object], None]) -> None:
         """
-        Adds an observer to the list of observers that will be notified when a new tank is added to the manager.
+        Adds a new handler to the tank added event.
 
-        :param observer: The observer object to add.
+        :param handler: The handler function to add.
         """
-        self.__observers.append(observer)
+        self.__tankAddedEvent.addHandler(handler)
 
-    def __notifyObservers(self, tankId: str, tankEntity: object) -> None:
+    def removeTankAddedHandler(self, handler: Callable[[str, object], None]) -> None:
         """
-        Notifies all observers of the new tank that was added to the manager.
+        Removes a handler from the tank added event.
 
-        :param tankId: The ID of the new tank.
-        :param tankEntity: The tank entity object of the new tank.
+        :param handler: The handler function to remove.
         """
-        for observer in self.__observers:
-            observer.onTankAdded(tankId, tankEntity)
+        self.__tankAddedEvent.removeHandler(handler)
