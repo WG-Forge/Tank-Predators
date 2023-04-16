@@ -4,6 +4,7 @@ from Tanks.Components.PositionComponent import PositionComponent
 from Tanks.Components.DestructionRewardComponent import DestructionRewardComponent
 from Tanks.Components.BaseCaptureComponent import BaseCaptureComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
+from Tanks.Components.OwnerComponent import OwnerComponent
 from Aliases import positionTuple
 from Aliases import jsonDict
 
@@ -13,17 +14,19 @@ class Tank(ABC):
     """
     __slots__ = ("__components",)
 
-    def __init__(self, spawnPosition: positionTuple, position: positionTuple, settings: jsonDict, currentHealth: int = None) -> None:
+    def __init__(self, spawnPosition: positionTuple, position: positionTuple, ownerId: int, settings: jsonDict, currentHealth: int = None) -> None:
         """
         Initializes a new instance of the Tank class.
 
         :param spawnPosition: A tuple representing the spawn position of the tank.
         :param position: A tuple representing the current position of the tank.
+        :param ownerId: An integer representing the owner of the tank.
         :param settings: A dictionary containing all the settings of the tank entity.
         :param currentHealth: Optional. An integer representing the current health value of the tank.
                             If not provided, it will default to the maximum health value.
         """
         self.__components = {}
+        self._initializeOwner(ownerId)
         self._initializePosition(spawnPosition, position, settings["sp"])
         self._initializeDestructionReward(settings["destructionPoints"])
         if currentHealth is None:
@@ -32,6 +35,14 @@ class Tank(ABC):
             self._initializeHealth(settings["hp"], currentHealth)
         self._initializeCapture()
         self._initializeShooting(settings)
+
+    def _initializeOwner(self, ownerId: int) -> None:
+        """
+        Initializes the owner component for the tank.
+
+        :param ownerId: An integer representing the owner of the tank.
+        """
+        self._setComponent("owner", OwnerComponent(ownerId))
 
     def _initializePosition(self, spawnPosition: positionTuple, position: positionTuple, speed: int) -> None:
         """
