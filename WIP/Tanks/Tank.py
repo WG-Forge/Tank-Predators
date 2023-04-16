@@ -13,36 +13,25 @@ class Tank(ABC):
     Abstract base class for all tank entities in the game.
     """
     __slots__ = ("__components",)
-
-    def __init__(self, spawnPosition: positionTuple, position: positionTuple, ownerId: int, settings: jsonDict, currentHealth: int = None) -> None:
+    def __init__(self, spawnPosition: positionTuple, position: positionTuple, ownerId: int, currentHealth: int, capturePoints: int, settings: jsonDict) -> None:
         """
         Initializes a new instance of the Tank class.
 
         :param spawnPosition: A tuple representing the spawn position of the tank.
         :param position: A tuple representing the current position of the tank.
         :param ownerId: An integer representing the owner of the tank.
-        :param settings: A dictionary containing all the settings of the tank entity.
         :param currentHealth: Optional. An integer representing the current health value of the tank.
                             If not provided, it will default to the maximum health value.
+        :param capturePoints: An integer representing the capture points of the tank.
+        :param settings: A dictionary containing all the settings of the tank entity.
         """
         self.__components = {}
-        self._initializeOwner(ownerId)
         self._initializePosition(spawnPosition, position, settings["sp"])
+        self._initializeOwner(ownerId)
         self._initializeDestructionReward(settings["destructionPoints"])
-        if currentHealth is None:
-            self._initializeHealth(settings["hp"], settings["hp"])
-        else:
-            self._initializeHealth(settings["hp"], currentHealth)
-        self._initializeCapture()
+        self._initializeHealth(settings["hp"], currentHealth)
+        self._initializeCapture(capturePoints)
         self._initializeShooting(settings)
-
-    def _initializeOwner(self, ownerId: int) -> None:
-        """
-        Initializes the owner component for the tank.
-
-        :param ownerId: An integer representing the owner of the tank.
-        """
-        self._setComponent("owner", OwnerComponent(ownerId))
 
     def _initializePosition(self, spawnPosition: positionTuple, position: positionTuple, speed: int) -> None:
         """
@@ -53,6 +42,14 @@ class Tank(ABC):
         :param speed: An integer representing the speed of the tank.
         """
         self._setComponent("position", PositionComponent(spawnPosition, position, speed))
+        
+    def _initializeOwner(self, ownerId: int) -> None:
+        """
+        Initializes the owner component for the tank.
+
+        :param ownerId: An integer representing the owner of the tank.
+        """
+        self._setComponent("owner", OwnerComponent(ownerId))
 
     def _initializeDestructionReward(self, destructionReward: int) -> None:
         """
@@ -71,9 +68,11 @@ class Tank(ABC):
         """
         self._setComponent("health", HealthComponent(maxHealth, currentHealth))
 
-    def _initializeCapture(self) -> None:
+    def _initializeCapture(self, capturePoints: int) -> None:
         """
         Initializes the capture component for the tank.
+
+        :param capturePoints: An integer representing the capture points of the tank.
         """
         self._setComponent("capture", BaseCaptureComponent())
 
