@@ -1,22 +1,11 @@
+from dataclasses import dataclass
+
+@dataclass
 class DestructionRewardComponent:
     """
-    Component for storing the destruction reward of an entity.
+    A component representing the destruction reward of an entity.
+
+    Attributes:
+        destructionReward: The amount of reward given upon destruction of the entity.
     """
-
-    __slots__ = ("__destructionReward",)
-
-    def __init__(self, destructionReward: int) -> None:
-        """
-        Initializes a new instance of the DestructionRewardComponent class.
-
-        :param destructionReward: The destruction reward of the entity.
-        """
-        self.__destructionReward = destructionReward
-
-    def getDestructionReward(self) -> int:
-        """
-        Returns the destruction reward of the entity.
-
-        :return: An integer representing the destruction reward of the entity.
-        """
-        return self.__destructionReward
+    destructionReward: int
