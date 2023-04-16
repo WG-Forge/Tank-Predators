@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from TankComponents.HealthComponent import HealthComponent
-from TankComponents.PositionComponent import PositionComponent
-from TankComponents.DestructionRewardComponent import DestructionRewardComponent
-from TankComponents.BaseCaptureComponent import BaseCaptureComponent
-from TankComponents.CurvedShootingComponent import CurvedShootingComponent
+from Tanks.Components.HealthComponent import HealthComponent
+from Tanks.Components.PositionComponent import PositionComponent
+from Tanks.Components.DestructionRewardComponent import DestructionRewardComponent
+from Tanks.Components.BaseCaptureComponent import BaseCaptureComponent
+from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
 from Aliases import positionTuple
 from Aliases import jsonDict
 
@@ -85,6 +85,15 @@ class Tank(ABC):
         :return: The component instance with the given name.
         """
         return self.__components[componentName]
+    
+    def hasComponent(self, componentName: str) -> bool:
+        """
+        Returns True if the tank has a component with the given name, False otherwise.
+
+        :param componentName: A string representing the name of the component to check for.
+        :return: True if the tank has a component with the given name, False otherwise.
+        """
+        return componentName in self.__components
     
     def _setComponent(self, componentName: str, componentInstance: object) -> None:
         """
