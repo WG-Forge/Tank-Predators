@@ -26,7 +26,10 @@ class Tank(ABC):
         self.__components = {}
         self._initializePosition(spawnPosition, position, settings["sp"])
         self._initializeDestructionReward(settings["destructionPoints"])
-        self._initializeHealth(settings["hp"], currentHealth)
+        if currentHealth is None:
+            self._initializeHealth(settings["hp"], settings["hp"])
+        else:
+            self._initializeHealth(settings["hp"], currentHealth)
         self._initializeCapture()
         self._initializeShooting(settings)
 
@@ -48,13 +51,12 @@ class Tank(ABC):
         """
         self._setComponent("destructionReward", DestructionRewardComponent(destructionReward))
 
-    def _initializeHealth(self, maxHealth: int, currentHealth: int = None) -> None:
+    def _initializeHealth(self, maxHealth: int, currentHealth: int) -> None:
         """
         Initializes the health component for the tank.
 
         :param maxHealth: An integer representing the maximum health value of the tank.
-        :param currentHealth: Optional. An integer representing the current health value of the tank.
-                            If not provided, it will default to the maximum health value.
+        :param currentHealth: An integer representing the current health value of the tank.
         """
         self._setComponent("health", HealthComponent(maxHealth, currentHealth))
 
