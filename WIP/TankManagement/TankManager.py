@@ -1,45 +1,33 @@
-from Tanks.AT_SPG import AT_SPG
-from Tanks.HEAVY_TANK import HEAVY_TANK
-from Tanks.LIGHT_TANK import LIGHT_TANK
-from Tanks.MEDIUM_TANK import MEDIUM_TANK
-from Tanks.SPG import SPG
+from TankManagement.TankFactory import TankFactory
+from Events.Events import TankAddedEvent
+from Events.EventManager import EventManager
 from Tanks.Tank import Tank
 from Aliases import jsonDict
-from Utils import HexToTuple
 
 class TankManager:
     """
-    A class that manages the tanks in a game.
+    A class that manages the tanks.
     """
+    def __init__(self, eventManager: EventManager) -> None:
+        """
+        Initializes the TankManager.
 
-    def __init__(self) -> None:
+        :param eventManager: The EventManager instance to use for registering and triggering events.
         """
-        Initializes the TankManager object.
-        """
+        self.__tankFactory = TankFactory()
+        self.__eventManager = eventManager
+        self.__eventManager.registerEvent(TankAddedEvent)
         self.__tanks = {}
-        self.__tankTypeMapping = {
-            "at_spg": AT_SPG,
-            "heavy_tank": HEAVY_TANK,
-            "light_tank": LIGHT_TANK,
-            "medium_tank": MEDIUM_TANK,
-            "spg": SPG,
-        }
-       
+
     def addTank(self, tankId: str, tankData: jsonDict) -> None:
         """
-        Adds a tank to the manager with the given tank ID and data.
+        Adds a new tank to the manager with the given ID and data, and notifies any observers of the new tank.
 
-        :param tankId: The ID of the tank to add.
-        :param tankData: The data of the tank to add.
+        :param tankId: The ID of the tank to add (from the server).
+        :param tankData: The data of the tank to add, as a dictionary (from the server).
         """
-        tankType = tankData["vehicle_type"]
-        spawnPosition = HexToTuple(tankData["spawn_position"])
-        position = HexToTuple(tankData["position"])
-        ownerId = tankData["player_id"]
-        currentHealth = tankData["health"]
-        capturePoints = tankData["capture_points"]
-        
-        self.__tanks[tankId] = self.__tankTypeMapping[tankType](spawnPosition, position, ownerId, currentHealth, capturePoints)
+        self.__tanks[tankId] = self.__tankFactory.createTank(tankData)
+        self.__eventManager.triggerEvent(TankAddedEvent, tankId, self.__tanks[tankId])
         
     def hasTank(self, tankId: str) -> bool:
         """
@@ -49,12 +37,12 @@ class TankManager:
         :return: True if the manager has a tank with the given ID, False otherwise.
         """
         return tankId in self.__tanks
-    
+        
     def getTank(self, tankId: str) -> Tank:
         """
         Gets the tank entity with the given ID.
 
         :param tankId: The ID of the tank to get.
-        :return: The tank entity with the given ID.
+        :return: The Tank instance with the given ID.
         """
         return self.__tanks[tankId]
