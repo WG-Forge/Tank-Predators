@@ -91,7 +91,9 @@ class TankMovementSystem:
 
         :return: A list of positionTuples representing all possible movement options.
         """
-
+        if tankId not in self.__tankPositions:
+            raise ValueError(f"TankId:{tankId} is not in the movement system")
+        
         # Gets the tanks maximum movement distance
         distance = self.__tankPositions[tankId].speed
         mapSize = self.__map.getSize()
