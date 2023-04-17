@@ -94,7 +94,7 @@ class Tank(ABC):
         :param componentName: A string representing the name of the component to retrieve.
         :return: The component instance with the given name.
         """
-        return self.__components[componentName]
+        return self.__components.get(componentName)
     
     def hasComponent(self, componentName: str) -> bool:
         """
