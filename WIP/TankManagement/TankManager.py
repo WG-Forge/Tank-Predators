@@ -12,7 +12,7 @@ class TankManager:
         """
         Initializes the TankManager.
 
-        :param eventManager: The EventManager instance to use for registering and triggering events.
+        :param eventManager: The EventManager instance to use for triggering events.
         """
         self.__tankFactory = TankFactory()
         self.__eventManager = eventManager

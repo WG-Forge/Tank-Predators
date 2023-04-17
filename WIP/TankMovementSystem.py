@@ -3,33 +3,34 @@ from Events.Events import TankMovedEvent
 from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
-import Tanks.Settings as TankSettings
 from Aliases import positionTuple
 import itertools
-from Utils import HexToTuple
 
 class TankMovementSystem:
     """
     A system that manages the movement of tanks.
     """
 
-    def __init__(self, map: Map, eventManager: EventManager) -> None:
+    def __init__(self, map: Map, eventManager: EventManager, maxDistance: int) -> None:
         """
         Initializes the TankMovementSystem.
 
+        :param map: An instance of the Map that holds static game information.
+        :param eventManager: The EventManager instance to use for triggering events.
+        :param maxDistance: The maximum distance a tank can travel
         """
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__map = map
-        self.__tanks = {}
+        self.__tankPositions = {}
         self.__tankMap = {}
         self.__spawnPoints = {}
         self.__canMoveTo = ["Empty", "Base"]
         self.__canMoveTrough = ["Empty", "Base"]
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
-        self.__initializePathingOffsets()
+        self.__initializePathingOffsets(maxDistance)
 
-    def __initializePathingOffsets(self) -> None:
+    def __initializePathingOffsets(self, maxDistance: int) -> None:
         """
         Calculates pathing offsets to a distance of maximum travel distance of any tank.
         Initializes a list of dictionaries representing all possible positions a tank can move to
@@ -41,7 +42,6 @@ class TankMovementSystem:
         """
 
         # Get the maximum travel distance of any tank.
-        maxDistance = max ([tank["sp"] for tank in TankSettings.TANKS.values()])
         startingPosition = (0, 0, 0)
 
         # Keep track of which positions have already been visited.
@@ -71,9 +71,15 @@ class TankMovementSystem:
                         self.__pathingOffsets[currentDistance][nextPosition].add(position)
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
-        self.__tanks[tankId] = tankEntity.getComponent("position")
-        self.__tankMap[self.__tanks[tankId].position] = tankId
-        self.__spawnPoints[self.__tanks[tankId].spawnPosition] = tankId
+        """
+        Event handler. Adds the tank's position component, position on the map, and spawn point position to the respective dictionaries.
+
+        :param tankId: The ID of the added tank.
+        :param tankEntity: The Tank entity that was added.
+        """
+        self.__tankPositions[tankId] = tankEntity.getComponent("position")
+        self.__tankMap[self.__tankPositions[tankId].position] = tankId
+        self.__spawnPoints[self.__tankPositions[tankId].spawnPosition] = tankId
 
     def getMovementOptions(self, tankId: str):
         """
@@ -85,9 +91,9 @@ class TankMovementSystem:
         """
 
         # Gets the tanks maximum movement distance
-        distance = self.__tanks[tankId].speed
+        distance = self.__tankPositions[tankId].speed
         mapSize = self.__map.getSize()
-        startingPosition = self.__tanks[tankId].position  # Get starting position to a tuple
+        startingPosition = self.__tankPositions[tankId].position  # Get starting position to a tuple
         visited = set()  # Set to store visited offsets
         visited.add((0, 0, 0))  # Can always reach 0 offset since the tank is already there
         result = []  # List to store valid movement options
@@ -120,7 +126,13 @@ class TankMovementSystem:
         return result
 
     def move(self, tankId: str, newPosition: positionTuple):
-        self.__tankMap.pop(self.__tanks[tankId].position)
+        """
+        Move the specified tank to the new position, triggering a moved event.
+
+        :param tankId: The ID of the tank to move.
+        :param newPosition: The new position of the tank as a tuple of (x, y, z) coordinates.
+        """
+        self.__tankMap.pop(self.__tankPositions[tankId].position)
         self.__tankMap[newPosition] = tankId
-        self.__tanks[tankId].position = newPosition
+        self.__tankPositions[tankId].position = newPosition
         self.__eventManager.triggerEvent(TankMovedEvent, tankId, newPosition)
