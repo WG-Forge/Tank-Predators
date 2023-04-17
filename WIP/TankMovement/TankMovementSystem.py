@@ -1,10 +1,12 @@
 from Events.Events import TankAddedEvent
+from Events.Events import TankMovedEvent
 from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
 import Tanks.Settings as TankSettings
 from Aliases import positionTuple
 import itertools
+from Utils import HexToTuple
 
 class TankMovementSystem:
     """
@@ -20,6 +22,10 @@ class TankMovementSystem:
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__map = map
         self.__tanks = {}
+        self.__tankMap = {}
+        self.__spawnPoints = {}
+        self.__canMoveTo = ["Empty", "Base"]
+        self.__canMoveTrough = ["Empty", "Base"]
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__initializePathingOffsets()
 
@@ -64,14 +70,57 @@ class TankMovementSystem:
                     elif nextPosition in self.__pathingOffsets[currentDistance]:
                         self.__pathingOffsets[currentDistance][nextPosition].add(position)
 
-    # TODO: handle new tank addition
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
-        pass
+        self.__tanks[tankId] = tankEntity.getComponent("position")
+        self.__tankMap[self.__tanks[tankId].position] = tankId
+        self.__spawnPoints[self.__tanks[tankId].spawnPosition] = tankId
 
-    # TODO: obtain and return movement options using map and tanks
-    def getMovementOptions(self, tankId: str, tankEntity: Tank):
-        pass
+    def getMovementOptions(self, tankId: str):
+        """
+        Gets all possible moves for a given tank.
 
-    #TODO: change tanks position and trigger TankMovedEvent if the move is valid
-    def move(self, tankId: str, position: positionTuple):
-        pass
+        :param tankId: The ID of the tank to get moves for.
+
+        :return: A list of positionTuples representing all possible movement options.
+        """
+
+        # Gets the tanks maximum movement distance
+        distance = self.__tanks[tankId].speed
+        mapSize = self.__map.getSize()
+        startingPosition = self.__tanks[tankId].position  # Get starting position to a tuple
+        visited = set()  # Set to store visited offsets
+        visited.add((0, 0, 0))  # Can always reach 0 offset since the tank is already there
+        result = []  # List to store valid movement options
+
+        # Perform breadth-first search to find all possible moves
+        for currentDistance in range(1, distance + 1):
+            # Iterate over all possible offsets for the current distance
+            for offsetPosition, canBeReachedBy in self.__pathingOffsets[currentDistance].items():
+                # Check if the offset can be reached from a previously reachable position
+                if len(visited.intersection(canBeReachedBy)) > 0:
+                    currentPosition = tuple(x + y for x, y in zip(startingPosition, offsetPosition))
+                    # Check if the current position is within the boundaries of the game map
+                    if abs(currentPosition[0]) < mapSize and abs(currentPosition[1]) < mapSize and abs(
+                            currentPosition[2]) < mapSize:
+                        currentPositionObject = self.__map.objectAt(currentPosition)
+                        # Check if the tank can move through the current position
+                        if currentPositionObject in self.__canMoveTrough:
+                            visited.add(offsetPosition)
+                            # Check if the tank can move to the current position and if there is no other tank in that position
+                            if currentPositionObject in self.__canMoveTo and not currentPosition in self.__tankMap:
+                                spawnPoint = self.__spawnPoints.get(currentPosition)
+                                # Check if the current position is a spawnpoint
+                                if spawnPoint is not None:
+                                    # Check if the spawn point doesn't belong to the current tank
+                                    if spawnPoint != tankId:
+                                        continue
+                                # Add current position to the result list
+                                result.append(currentPosition)
+
+        return result
+
+    def move(self, tankId: str, newPosition: positionTuple):
+        self.__tankMap.pop(self.__tanks[tankId].position)
+        self.__tankMap[newPosition] = tankId
+        self.__tanks[tankId].position = newPosition
+        self.__eventManager.triggerEvent(TankMovedEvent, tankId, newPosition)
