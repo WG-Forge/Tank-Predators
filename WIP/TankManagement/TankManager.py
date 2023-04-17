@@ -16,7 +16,6 @@ class TankManager:
         """
         self.__tankFactory = TankFactory()
         self.__eventManager = eventManager
-        self.__eventManager.registerEvent(TankAddedEvent)
         self.__tanks = {}
 
     def addTank(self, tankId: str, tankData: jsonDict) -> None:

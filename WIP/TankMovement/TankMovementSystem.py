@@ -72,6 +72,6 @@ class TankMovementSystem:
     def getMovementOptions(self, tankId: str, tankEntity: Tank):
         pass
 
-    #TODO: change tanks position component if the move is valid
+    #TODO: change tanks position and trigger TankMovedEvent if the move is valid
     def move(self, tankId: str, position: positionTuple):
         pass
