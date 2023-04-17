@@ -1,6 +1,7 @@
 from typing import Type, Any, Callable
 from Events.Event import Event
 from Events.EventExceptions import EventNotInManager
+from Events.EventExceptions import EventAlreadyInManager
 
 class EventManager:
     """
@@ -15,6 +16,9 @@ class EventManager:
 
         :param eventType: The type of the event to register.
         """
+        if eventType in self.__events:
+            raise EventAlreadyInManager(eventType.__name__)
+
         self.__events[eventType] = eventType()
 
     def addHandler(self, eventType: Type[Event], handler: Callable[..., None]) -> None:

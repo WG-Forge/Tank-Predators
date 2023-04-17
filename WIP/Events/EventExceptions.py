@@ -10,6 +10,18 @@ class EventNotInManager(Exception):
         """
         Exception.__init__(self, f"Event - {eventName} not in the event manager")
 
+class EventAlreadyInManager(Exception):
+    """
+    Exception raised when an event is already registered in an EventManager instance.
+    """
+    def __init__(self, eventName: str):
+        """
+        Initializes the EventAlreadyInManager exception.
+
+        :param eventName: The name of the event that was already in the event manager.
+        """
+        Exception.__init__(self, f"Event - {eventName} is already in the event manager")
+
 class HandlerNotInEvent(Exception):
     """
     Exception raised when a handler is not registered in an event.
