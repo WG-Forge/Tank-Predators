@@ -72,14 +72,16 @@ class TankMovementSystem:
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
-        Event handler. Adds the tank's position component, position on the map, and spawn point position to the respective dictionaries.
+        Event handler. Adds the tank to the system if it has a position component
 
         :param tankId: The ID of the added tank.
         :param tankEntity: The Tank entity that was added.
         """
-        self.__tankPositions[tankId] = tankEntity.getComponent("position")
-        self.__tankMap[self.__tankPositions[tankId].position] = tankId
-        self.__spawnPoints[self.__tankPositions[tankId].spawnPosition] = tankId
+        positionComponent = tankEntity.getComponent("position")
+        if positionComponent:
+            self.__tankPositions[tankId] = positionComponent
+            self.__tankMap[positionComponent.position] = tankId
+            self.__spawnPoints[positionComponent.spawnPosition] = tankId
 
     def getMovementOptions(self, tankId: str):
         """
