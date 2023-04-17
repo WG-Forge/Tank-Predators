@@ -15,4 +15,4 @@ class HEAVY_TANK(Tank):
         :param currentHealth: An integer representing the current health of the tank.
         :param capturePoints: An integer representing the capture points of the tank.
         """
-        super().__init__(spawnPosition, position, ownerId, currentHealth, capturePoints, Settings.HEAVY_TANK)
+        super().__init__(spawnPosition, position, ownerId, currentHealth, capturePoints, Settings.TANKS["HEAVY_TANK"])

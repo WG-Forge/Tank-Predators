@@ -17,7 +17,7 @@ class AT_SPG(Tank):
         :param currentHealth: An integer representing the current health of the tank.
         :param capturePoints: An integer representing the capture points of the tank.
         """
-        super().__init__(spawnPosition, position, ownerId, currentHealth, capturePoints, Settings.AT_SPG)
+        super().__init__(spawnPosition, position, ownerId, currentHealth, capturePoints, Settings.TANKS["AT_SPG"])
   
     def _initializeShooting(self, settings: jsonDict) -> None:
         """
