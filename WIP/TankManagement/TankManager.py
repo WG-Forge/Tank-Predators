@@ -3,6 +3,7 @@ from Tanks.HEAVY_TANK import HEAVY_TANK
 from Tanks.LIGHT_TANK import LIGHT_TANK
 from Tanks.MEDIUM_TANK import MEDIUM_TANK
 from Tanks.SPG import SPG
+from Tanks.Tank import Tank
 from Aliases import jsonDict
 from Utils import HexToTuple
 
@@ -49,11 +50,11 @@ class TankManager:
         """
         return tankId in self.__tanks
     
-    def getTank(self, tankId: str) -> object:
+    def getTank(self, tankId: str) -> Tank:
         """
-        Gets the tank object with the given ID.
+        Gets the tank entity with the given ID.
 
         :param tankId: The ID of the tank to get.
-        :return: The tank entity object with the given ID.
+        :return: The tank entity with the given ID.
         """
         return self.__tanks[tankId]

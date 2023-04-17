@@ -1,5 +1,6 @@
 from TankManagement.TankManager import TankManager
 from TankManagement.TankAddedEvent import TankAddedEvent
+from Tanks.Tank import Tank
 from Aliases import jsonDict
 from typing import Callable
 
@@ -10,7 +11,7 @@ class TankManagementSystem:
 
     def __init__(self) -> None:
         """
-        Initializes the TankManagementSystem object.
+        Initializes the TankManagementSystem.
         """
         self.__tankManager = TankManager()
         self.__tankAddedEvent = TankAddedEvent()
@@ -34,16 +35,16 @@ class TankManagementSystem:
         """
         return self.__tankManager.hasTank(tankId)
         
-    def getTank(self, tankId: str) -> object:
+    def getTank(self, tankId: str) -> Tank:
         """
-        Gets the tank object with the given ID.
+        Gets the tank entity with the given ID.
 
         :param tankId: The ID of the tank to get.
-        :return: The tank entity object with the given ID.
+        :return: The tank entity entity with the given ID.
         """
         return self.__tankManager.getTank(tankId)
     
-    def addTankAddedHandler(self, handler: Callable[[str, object], None]) -> None:
+    def addTankAddedHandler(self, handler: Callable[[str, Tank], None]) -> None:
         """
         Adds a new handler to the tank added event.
 
@@ -51,7 +52,7 @@ class TankManagementSystem:
         """
         self.__tankAddedEvent.addHandler(handler)
 
-    def removeTankAddedHandler(self, handler: Callable[[str, object], None]) -> None:
+    def removeTankAddedHandler(self, handler: Callable[[str, Tank], None]) -> None:
         """
         Removes a handler from the tank added event.
 

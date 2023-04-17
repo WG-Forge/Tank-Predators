@@ -1,4 +1,5 @@
 from typing import Callable
+from Tanks.Tank import Tank
 
 class TankAddedEvent:
     """
@@ -11,7 +12,7 @@ class TankAddedEvent:
         """
         self.__handlers = []
 
-    def addHandler(self, handler: Callable[[str, object], None]) -> None:
+    def addHandler(self, handler: Callable[[str, Tank], None]) -> None:
         """
         Adds a new handler to the event.
 
@@ -19,7 +20,7 @@ class TankAddedEvent:
         """
         self.__handlers.append(handler)
 
-    def removeHandler(self, handler: Callable[[str, object], None]) -> None:
+    def removeHandler(self, handler: Callable[[str, Tank], None]) -> None:
         """
         Removes a handler from the event.
 
@@ -28,7 +29,7 @@ class TankAddedEvent:
         if handler in self.__handlers:
             self.__handlers.remove(handler)
 
-    def raiseEvent(self, tankId: str, tankEntity: object) -> None:
+    def raiseEvent(self, tankId: str, tankEntity: Tank) -> None:
         """
         Raises the event, calling all registered handlers with the given arguments.
 
