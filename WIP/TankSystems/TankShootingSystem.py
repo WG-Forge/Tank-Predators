@@ -10,7 +10,16 @@ from Aliases import positionTuple
 import itertools
 
 class TankShootingSystem:
+    """
+    A system that manages the shooting of tanks.
+    """
     def __init__(self, map: Map, eventManager: EventManager):
+        """
+        Initializes the TankShootingSystem.
+
+        :param map: An instance of the Map that holds static game information.
+        :param eventManager: The EventManager instance to use for triggering events.
+        """
         self.__map = map
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
@@ -40,12 +49,27 @@ class TankShootingSystem:
             self.__tankMap[positionComponent.position] = tankId
 
     def onTankMoved(self, tankId: str, newPosition: positionTuple) -> None:
+        """
+        Event handler. Handles updating tank positions in this system.
+
+        :param tankId: The ID of the tank that got moved.
+        :param newPosition: New position of the tank.
+        """
         if tankId in self.__tanks:
             self.__tankMap.pop(self.__tanks[tankId]["position"])
             self.__tanks[tankId]["position"] = newPosition
             self.__tankMap[newPosition] = tankId
 
-    def getShootingOptions(self, tankId: str):
+    def getShootingOptions(self, tankId: str) -> list[tuple(positionTuple,list[str])]:
+        """
+        Returns a list of shooting options for the specified tank.
+
+        :param tankId: The ID of the tank for which to get the shooting options.
+        :return: A list of shooting options, where each option is represented as a tuple, 
+            containing the target position and a list of tank IDs that can be hit by shooting at that position.
+        :raises ValueError: If the specified tank ID is not in the shooting system.
+        :raises KeyError: If the shooting component of the specified tank is not recognized.
+        """
         tank = self.__tanks.get(tankId)
 
         if tank is None:
@@ -61,9 +85,23 @@ class TankShootingSystem:
             raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
         
     def __distance(self, position1: positionTuple, position2: positionTuple) -> int:
+        """
+        Returns the distance between two positions.
+
+        :param position1: The first position.
+        :param position2: The second position.
+        :return: The distance between the two positions.
+        """
         return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(position1[2] - position2[2])) // 2
     
-    def __getCurvedShootingOptions(self, shooterTankId: str):
+    def __getCurvedShootingOptions(self, shooterTankId: str) -> list[tuple(positionTuple,list[str])]:
+        """
+        Returns a list of curved shooting options for the specified tank.
+
+        :param shooterTankId: The ID of the tank for which to get the shooting options.
+        :return: A list of shooting options, where each option is represented as a tuple,
+            containing the target position and a list of tank IDs that can be hit by shooting at that position.
+        """
         shootingOptions = []
 
         shooterOwnerId = self.__tanks[shooterTankId]["owner"].ownerId
@@ -81,10 +119,19 @@ class TankShootingSystem:
 
         return shootingOptions
     
-    def __getDirectShootingTargets(self, ownerId, startingPosition, targetPermutation, maxAttackDistance):
+    def __getDirectShootingTargets(self, ownerId, startingPosition, targetPermutation, maxAttackDistance) -> list[str]:
+        """
+        Returns a list of tank IDs that can be hit by direct shooting.
+
+        :param ownerId: The owner ID of the tank that is doing the shooting.
+        :param startingPosition: The starting position of the shooter tank.
+        :param targetPermutation: The direction of the shooting.
+        :param maxAttackDistance: The maximum distance that can be reached by the shooter tank.
+        :return: A list of tank IDs that can be hit by direct shooting.
+        """
         targets = []
         
-        for distance in range(1, maxAttackDistance + 1):
+        for distance in range(1, maxAttackDistance + 1)
             currentPosition = tuple(x + y * distance for x, y in zip(startingPosition, targetPermutation))
             if self.__map.objectAt(currentPosition) in self.__canShootTrough:
                 targetTankId = self.__tankMap.get(currentPosition)
@@ -95,7 +142,14 @@ class TankShootingSystem:
 
         return targets
 
-    def __getDirectShootingOptions(self, shooterTankId: str):
+    def __getDirectShootingOptions(self, shooterTankId: str) -> list[tuple(positionTuple,list[str])]:
+        """
+        Returns a list of direct shooting options for the specified tank.
+
+        :param shooterTankId: The ID of the tank for which to get the shooting options.
+        :return: A list of shooting options, where each option is represented as a tuple,
+            containing the target position and a list of tank IDs that can be hit by shooting at that position.
+        """
         shootingOptions = []
 
         shooterOwnerId = self.__tanks[shooterTankId]["owner"].ownerId
@@ -109,8 +163,13 @@ class TankShootingSystem:
 
         return [shootingOption for shootingOption in shootingOptions if len(shootingOption[1])]
     
-    def shoot(self, shooterId: str, targetPosition: positionTuple):
+    def shoot(self, shooterId: str, targetPosition: positionTuple) -> None:
+        """
+        Handles shooting from a tank to a target position.
 
+        :param shooterId: The ID of the tank that shoots.
+        :param targetPosition: The position tuple of the target.
+        """
         shooter = self.__tanks.get(shooterId)
         if shooter:
             shootingComponent = shooter["shooting"]
