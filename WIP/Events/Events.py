@@ -5,3 +5,6 @@ class TankAddedEvent(Event):
 
 class TankMovedEvent(Event):
     pass
+
+class TankShotEvent(Event):
+    pass
