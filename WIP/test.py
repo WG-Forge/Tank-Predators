@@ -4,8 +4,12 @@ import Tanks.Settings as TankSettings
 from TankManagement.TankManager import TankManager
 from TankSystems.TankMovementSystem import TankMovementSystem
 from TankSystems.TankShootingSystem import TankShootingSystem
+from TankSystems.TankHealthSystem import TankHealthSystem
+from TankSystems.DisplaySystem import DisplaySystem
+from threading import Thread
 import inspect
 import Events.Events as AllEvents
+import time
 
 tankData1 = {
     "player_id": 120,
@@ -63,7 +67,43 @@ map = Map({
    "size":11,
    "name":"map022",
    "content":{
-    "base":[],
+    "base":[
+         {
+            "x":-1,
+            "y":0,
+            "z":1
+         },
+         {
+            "x":-1,
+            "y":1,
+            "z":0
+         },
+         {
+            "x":0,
+            "y":-1,
+            "z":1
+         },
+         {
+            "x":0,
+            "y":0,
+            "z":0
+         },
+         {
+            "x":0,
+            "y":1,
+            "z":-1
+         },
+         {
+            "x":1,
+            "y":-1,
+            "z":0
+         },
+         {
+            "x":1,
+            "y":0,
+            "z":-1
+         }
+    ],
     "obstacle":[]
    }})
 
@@ -80,12 +120,23 @@ tankManager = TankManager(eventManager)
 # init systems
 movementSystem = TankMovementSystem(map, eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
 shootingSystem = TankShootingSystem(map, eventManager)
+healthSystem = TankHealthSystem(map, eventManager)
+displaySystem = DisplaySystem(map, eventManager)
 
 # logic, should be replaced by server later
 tankManager.addTank("1", tankData1)
 tankManager.addTank("2", tankData2)
 tankManager.addTank("3", tankData3)
 
-options = shootingSystem.getShootingOptions("2")
+options = movementSystem.getMovementOptions("1")
 print(options)
 print(len(options))
+time.sleep(2)
+movementSystem.move("1", options[0])
+
+# run turn() on systems that update every turn
+displaySystem.turn()
+
+
+time.sleep(10)
+displaySystem.stop()
