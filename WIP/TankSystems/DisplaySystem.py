@@ -69,7 +69,6 @@ class Display:
 
         :param position: Position tuple of the cell to change
         '''
-        print(self.__map.objectAt(position))
         self.__setCell(position, self.__colors.get(self.__map.objectAt(position), "white"))
 
 class DisplaySystem:
@@ -122,10 +121,11 @@ class DisplaySystem:
     def __updatePosition(self, tankId: str, tankData: jsonDict) -> None:
         positionComponent = tankData["positionComponent"]
         currentPosition = tankData["position"]
-
-        if positionComponent.position != currentPosition:
+        newPosition = positionComponent.position
+        if newPosition != currentPosition:
             self.__messageQueue.put(("emptyCell", currentPosition))
-            self.__messageQueue.put(("setCell", positionComponent.position, self.__OwnerColors[tankData["ownerId"]]))
+            self.__messageQueue.put(("setCell", newPosition, self.__OwnerColors[tankData["ownerId"]]))
+            tankData["position"] = newPosition
 
 
     def turn(self) -> None:
