@@ -8,3 +8,9 @@ class TankMovedEvent(Event):
 
 class TankShotEvent(Event):
     pass
+
+class TankDestroyedEvent(Event):
+    pass
+
+class TankRespawnedEvent(Event):
+    pass
