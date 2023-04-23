@@ -46,7 +46,7 @@ class TankHealthSystem:
             healthComponent.currentHealth -= damage
 
             if healthComponent.currentHealth <= 0:
-                EventManager.triggerEvent(TankDestroyedEvent, tankId)
+                self.__eventManager.triggerEvent(TankDestroyedEvent, tankId)
 
     def onTankRespawned(self, tankId: str) -> None:
         """
