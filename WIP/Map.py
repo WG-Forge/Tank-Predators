@@ -52,3 +52,10 @@ class Map:
                  If no object exists at the given position, returns "Empty".
         '''
         return self.__map.get(position, "Empty")
+
+    def __iter__(self):
+        """
+        Returns an iterator over the positions and objects in the Map.
+        """
+        for position, obj in self.__map.items():
+            yield position, obj
