@@ -1,5 +1,6 @@
 from Events.Events import TankAddedEvent
 from Events.Events import TankMovedEvent
+from Events.Events import TankRespawnedEvent
 from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
@@ -21,6 +22,7 @@ class TankMovementSystem:
         """
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
+        self.__eventManager.addHandler(TankRespawnedEvent, self.onTankRespawned)
         self.__map = map
         self.__tankPositions = {}
         self.__tankMap = {}
@@ -144,3 +146,15 @@ class TankMovementSystem:
         self.__tankMap[newPosition] = tankId
         self.__tankPositions[tankId].position = newPosition
         self.__eventManager.triggerEvent(TankMovedEvent, tankId, newPosition)
+
+
+    def onTankRespawned(self, tankId: str) -> None:
+        """
+        Event handler. Handles moving a tank to spawnpoint on respawn.
+
+        :param tankId: The ID of the tank that got respawned.
+        """
+        positionComponent = self.__tankPositions.get(tankId)
+
+        if positionComponent:
+            self.move(tankId, positionComponent.spawnPosition)
