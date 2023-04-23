@@ -6,106 +6,15 @@ from TankSystems.TankMovementSystem import TankMovementSystem
 from TankSystems.TankShootingSystem import TankShootingSystem
 from TankSystems.TankHealthSystem import TankHealthSystem
 from TankSystems.DisplaySystem import DisplaySystem
-from threading import Thread
+from TankSystems.TankRespawnSystem import TankRespawnSystem
+import random
 import inspect
 import Events.Events as AllEvents
 import time
-
-tankData1 = {
-    "player_id": 120,
-    "vehicle_type": "light_tank",
-    "health": 2,
-    "spawn_position": {
-        "x": 1,
-        "y": 0,
-        "z": -1
-    },
-    "position": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-    },
-    "capture_points": 0
-}
-
-tankData2 = {
-    "player_id": 130,
-    "vehicle_type": "at_spg",
-    "health": 1,
-    "spawn_position": {
-        "x": -5,
-        "y": -7,
-        "z": 8
-    },
-    "position": {
-        "x": 3,
-        "y": 0,
-        "z": -3
-    },
-    "capture_points": 0
-}
-
-tankData3 = {
-    "player_id": 126,
-    "vehicle_type": "at_spg",
-    "health": 1,
-    "spawn_position": {
-        "x": -5,
-        "y": -7,
-        "z": 8
-    },
-    "position": {
-        "x": 2,
-        "y": 0,
-        "z": -2
-    },
-    "capture_points": 0
-}
-
-# init map (should use server)
-map = Map({
-   "size":11,
-   "name":"map022",
-   "content":{
-    "base":[
-         {
-            "x":-1,
-            "y":0,
-            "z":1
-         },
-         {
-            "x":-1,
-            "y":1,
-            "z":0
-         },
-         {
-            "x":0,
-            "y":-1,
-            "z":1
-         },
-         {
-            "x":0,
-            "y":0,
-            "z":0
-         },
-         {
-            "x":0,
-            "y":1,
-            "z":-1
-         },
-         {
-            "x":1,
-            "y":-1,
-            "z":0
-         },
-         {
-            "x":1,
-            "y":0,
-            "z":-1
-         }
-    ],
-    "obstacle":[]
-   }})
+from PlayerSession import PlayerSession
+from Utils import HexToTuple
+from Utils import TupleToHex
+from ServerConnection import Action
 
 # init event manager and all events
 eventManager = EventManager()
@@ -117,31 +26,83 @@ for _, cls in allEvents:
 # init tank manager
 tankManager = TankManager(eventManager)
 
-# init systems
-movementSystem = TankMovementSystem(map, eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
-shootingSystem = TankShootingSystem(map, eventManager)
-healthSystem = TankHealthSystem(map, eventManager)
-displaySystem = DisplaySystem(map, eventManager)
+turnOrder = ["spg", "light_tank", "heavy_tank", "medium_tank", "at_spg"]
 
-# logic, should be replaced by server later
-tankManager.addTank("1", tankData1)
-tankManager.addTank("2", tankData2)
-tankManager.addTank("3", tankData3)
+print("Name: ", end="")
+name = input()
+with PlayerSession(name) as session:
+    playerID = session.login()
+    print(playerID)   
 
-# keep going while game not over
-for _ in range(10):
-    # perform actions
-    options = movementSystem.getMovementOptions("1")
-    time.sleep(0.5)
-    movementSystem.move("1", options[0])
+    gameState = session.getGameState()
+    playerTanks = [None] * 5
+    for tankId, tankData in gameState["vehicles"].items():
+        if tankData["player_id"] == playerID:
+            playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
-    options = movementSystem.getMovementOptions("2")
-    time.sleep(0.5)
-    movementSystem.move("2", options[0])
+    # Prepare arguments for Map creation.
+    mapInfo = session.getMapInfo()
+    map = Map(mapInfo)
+    # init systems
+    movementSystem = TankMovementSystem(map, eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
+    shootingSystem = TankShootingSystem(map, eventManager)
+    healthSystem = TankHealthSystem(eventManager)
+    displaySystem = DisplaySystem(map, eventManager)
+    respawnSystem = TankRespawnSystem(eventManager)
 
-    # run turn() on systems that update every turn
+    while not gameState["finished"]:
+        # add missing tanks
+        for tankId, tankData in gameState["vehicles"].items():
+            tankId = str(tankId)
+            if not tankManager.hasTank(tankId):
+                tankManager.addTank(tankId, tankData)
+
+        # perform other player actions
+        gameActions = session.getGameActions()
+        for action in gameActions["actions"]:
+            if action["action_type"] == Action.MOVE and action["player_id"] != playerID:
+                actionData = action["data"]
+                print(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+            elif action["action_type"] == Action.SHOOT and action["player_id"] != playerID:
+                actionData = action["data"]
+                print(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+
+        if gameState["current_player_idx"] == playerID:  # our turn
+            for tankId in playerTanks:
+                # perform actions
+                options = shootingSystem.getShootingOptions(tankId)
+                if len(options) > 0:
+                    randomChoice = random.randint(0, len(options) - 1)
+                    session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice][0])})
+                    shootingSystem.shoot(tankId, options[randomChoice][0])
+                    continue
+
+                options = movementSystem.getMovementOptions(tankId)
+                if len(options) > 0:
+                    randomChoice = random.randint(0, len(options) - 1)
+                    session.move({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice])})
+                    movementSystem.move(tankId, options[randomChoice])
+
+        session.nextTurn()
+        respawnSystem.turn()
+        displaySystem.turn()
+        gameState = session.getGameState()
+
+    # perform other player actions
+    gameActions = session.getGameActions()
+    for action in gameActions["actions"]:
+        if action["action_type"] == Action.MOVE and action["player_id"] != playerID:
+            actionData = action["data"]
+            movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+        elif action["action_type"] == Action.SHOOT and action["player_id"] != playerID:
+            actionData = action["data"]
+            shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+    respawnSystem.turn()
     displaySystem.turn()
 
-
-time.sleep(10)
-displaySystem.stop()
+    print(gameState["winner"])
+    session.logout()
+    time.sleep(10)
+    displaySystem.stop()
