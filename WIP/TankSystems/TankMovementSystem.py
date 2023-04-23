@@ -78,6 +78,7 @@ class TankMovementSystem:
         :param tankEntity: The Tank entity that was added.
         """
         positionComponent = tankEntity.getComponent("position")
+
         if positionComponent:
             self.__tankPositions[tankId] = positionComponent
             self.__tankMap[positionComponent.position] = tankId
@@ -136,6 +137,9 @@ class TankMovementSystem:
         :param tankId: The ID of the tank to move.
         :param newPosition: The new position of the tank as a tuple of (x, y, z) coordinates.
         """
+        if tankId not in self.__tankPositions:
+            raise ValueError(f"TankId:{tankId} is not in the movement system")
+        
         self.__tankMap.pop(self.__tankPositions[tankId].position)
         self.__tankMap[newPosition] = tankId
         self.__tankPositions[tankId].position = newPosition
