@@ -10,7 +10,7 @@ class TankHealthSystem:
     """
     def __init__(self, map: Map, eventManager: EventManager):
         """
-        Initializes the TankMovementSystem.
+        Initializes the TankHealthSystem.
 
         :param map: An instance of the Map that holds static game information.
         :param eventManager: The EventManager instance to use for triggering events.

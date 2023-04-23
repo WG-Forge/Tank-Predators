@@ -60,7 +60,7 @@ class TankShootingSystem:
             self.__tanks[tankId]["position"] = newPosition
             self.__tankMap[newPosition] = tankId
 
-    def getShootingOptions(self, tankId: str) -> list[tuple(positionTuple,list[str])]:
+    def getShootingOptions(self, tankId: str) -> list[tuple[positionTuple,list[str]]]:
         """
         Returns a list of shooting options for the specified tank.
 
@@ -94,7 +94,7 @@ class TankShootingSystem:
         """
         return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(position1[2] - position2[2])) // 2
     
-    def __getCurvedShootingOptions(self, shooterTankId: str) -> list[tuple(positionTuple,list[str])]:
+    def __getCurvedShootingOptions(self, shooterTankId: str) -> list[tuple[positionTuple,list[str]]]:
         """
         Returns a list of curved shooting options for the specified tank.
 
@@ -131,7 +131,7 @@ class TankShootingSystem:
         """
         targets = []
         
-        for distance in range(1, maxAttackDistance + 1)
+        for distance in range(1, maxAttackDistance + 1):
             currentPosition = tuple(x + y * distance for x, y in zip(startingPosition, targetPermutation))
             if self.__map.objectAt(currentPosition) in self.__canShootTrough:
                 targetTankId = self.__tankMap.get(currentPosition)
@@ -142,7 +142,7 @@ class TankShootingSystem:
 
         return targets
 
-    def __getDirectShootingOptions(self, shooterTankId: str) -> list[tuple(positionTuple,list[str])]:
+    def __getDirectShootingOptions(self, shooterTankId: str) -> list[tuple[positionTuple,list[str]]]:
         """
         Returns a list of direct shooting options for the specified tank.
 
