@@ -62,12 +62,15 @@ with PlayerSession(name) as session:
         for action in gameActions["actions"]:
             if action["action_type"] == Action.MOVE and action["player_id"] != playerID:
                 actionData = action["data"]
-                print(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                print(f"Moving: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
                 movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
             elif action["action_type"] == Action.SHOOT and action["player_id"] != playerID:
                 actionData = action["data"]
-                print(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                print(f"Shooting: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
                 shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+
+        respawnSystem.turn()
+        displaySystem.turn()
 
         if gameState["current_player_idx"] == playerID:  # our turn
             for tankId in playerTanks:
@@ -75,6 +78,7 @@ with PlayerSession(name) as session:
                 options = shootingSystem.getShootingOptions(tankId)
                 if len(options) > 0:
                     randomChoice = random.randint(0, len(options) - 1)
+                    print(f"Shooting: {tankId}, {options[randomChoice][0]}")
                     session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice][0])})
                     shootingSystem.shoot(tankId, options[randomChoice][0])
                     continue
@@ -82,12 +86,13 @@ with PlayerSession(name) as session:
                 options = movementSystem.getMovementOptions(tankId)
                 if len(options) > 0:
                     randomChoice = random.randint(0, len(options) - 1)
+                    print(f"Moving: {tankId}, {options[randomChoice]}")
                     session.move({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice])})
                     movementSystem.move(tankId, options[randomChoice])
 
-        session.nextTurn()
         respawnSystem.turn()
         displaySystem.turn()
+        session.nextTurn()
         gameState = session.getGameState()
 
     # perform other player actions
@@ -104,5 +109,5 @@ with PlayerSession(name) as session:
 
     print(gameState["winner"])
     session.logout()
-    time.sleep(10)
-    displaySystem.stop()
+
+    #displaySystem.stop()
