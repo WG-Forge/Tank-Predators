@@ -128,14 +128,19 @@ tankManager.addTank("1", tankData1)
 tankManager.addTank("2", tankData2)
 tankManager.addTank("3", tankData3)
 
-options = movementSystem.getMovementOptions("1")
-print(options)
-print(len(options))
-time.sleep(2)
-movementSystem.move("1", options[0])
+# keep going while game not over
+for _ in range(10):
+    # perform actions
+    options = movementSystem.getMovementOptions("1")
+    time.sleep(0.5)
+    movementSystem.move("1", options[0])
 
-# run turn() on systems that update every turn
-displaySystem.turn()
+    options = movementSystem.getMovementOptions("2")
+    time.sleep(0.5)
+    movementSystem.move("2", options[0])
+
+    # run turn() on systems that update every turn
+    displaySystem.turn()
 
 
 time.sleep(10)
