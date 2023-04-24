@@ -139,7 +139,9 @@ class TankShootingSystem:
                 if targetTankId:
                     if ownerId != self.__tanks[targetTankId]["owner"].ownerId:
                         targets.append(targetTankId)
-
+            else:
+                break
+            
         return targets
 
     def __getDirectShootingOptions(self, shooterTankId: str) -> list[tuple[positionTuple,list[str]]]:
