@@ -1,10 +1,7 @@
 from Events.Events import TankAddedEvent
 from Events.EventManager import EventManager
-from TankManagement.TankManager import TankManager
 from Map import Map
 from Tanks.Tank import Tank
-from Tanks.Components.PositionComponent import PositionComponent
-from Aliases import positionTuple, jsonDict
 from HexGrid import *
 from tkinter import *
 from threading import Thread
@@ -38,20 +35,21 @@ class Display:
 
     def __run(self):
         while True:
-            try:
-                messageType, *args = self.__messageQueue.get(block=False)
-                if messageType == "setCell":
-                    self.__setCell(*args)
-                elif messageType == "emptyCell":
-                    self.__emptyCell(*args)
-                elif messageType == "stop":
-                    return
-            except Exception:
-                pass
+            messageType, args = self.__messageQueue.get(block=True)
+
+            if messageType == "update":
+                for update in args[0]:
+                    self.__emptyCell(*update)
+
+                for update in args[1]:
+                    self.__setCell(*update)          
+            elif messageType == "stop":
+                self.__window.quit()
+                return
 
             self.__window.update_idletasks()
             self.__window.update()
-        
+       
     def __setCell(self, position: tuple, fillColor: str) -> None:
         '''
         Sets a cell to a given color on the map.
@@ -116,23 +114,24 @@ class DisplaySystem:
                 self.__OwnerColors[ownerComponent.ownerId] = self.__teamColors.pop()
                 tankColor = self.__OwnerColors[ownerComponent.ownerId]
 
-            self.__messageQueue.put(("setCell", positionComponent.position, tankColor))
-
-    def __updatePosition(self, tankId: str, tankData: jsonDict) -> None:
-        positionComponent = tankData["positionComponent"]
-        currentPosition = tankData["position"]
-        newPosition = positionComponent.position
-        if newPosition != currentPosition:
-            self.__messageQueue.put(("emptyCell", currentPosition))
-            self.__messageQueue.put(("setCell", newPosition, self.__OwnerColors[tankData["ownerId"]]))
-            tankData["position"] = newPosition
-
+            self.__messageQueue.put(("update", [[],[(positionComponent.position, tankColor)]]))
 
     def turn(self) -> None:
-        for tankId, tankData in self.__tanks.items():
-            self.__updatePosition(tankId, tankData)
+        updateList = [[],[]]
+
+        for tankData in self.__tanks.values():
+            positionComponent = tankData["positionComponent"]
+            currentPosition = tankData["position"]
+            newPosition = positionComponent.position
+            if newPosition != currentPosition:
+                updateList[0].append((currentPosition,))
+                updateList[1].append((newPosition, self.__OwnerColors[tankData["ownerId"]]))
+                tankData["position"] = newPosition
+
+        if len(updateList) > 0:
+            self.__messageQueue.put(("update", updateList))
 
     def stop(self) -> None:
-        self.__messageQueue.put(("stop",))
+        self.__messageQueue.put(("stop", []))
             
 
