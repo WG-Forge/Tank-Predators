@@ -15,6 +15,7 @@ from PlayerSession import PlayerSession
 from Utils import HexToTuple
 from Utils import TupleToHex
 from ServerConnection import Action
+
 def run(name):
     # init event manager and all events
     eventManager = EventManager()
@@ -45,7 +46,7 @@ def run(name):
         map = Map(mapInfo)
         # init systems
         movementSystem = TankMovementSystem(map, eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
-        shootingSystem = TankShootingSystem(map, eventManager)
+        shootingSystem = TankShootingSystem(map, eventManager, gameState["attack_matrix"])
         healthSystem = TankHealthSystem(eventManager)
         displaySystem = DisplaySystem(map, eventManager)
         respawnSystem = TankRespawnSystem(eventManager)
@@ -57,21 +58,6 @@ def run(name):
                 if not tankManager.hasTank(tankId):
                     tankManager.addTank(tankId, tankData)
 
-            # perform other player actions
-            gameActions = session.getGameActions()
-            for action in gameActions["actions"]:
-                if action["action_type"] == Action.MOVE and action["player_id"] != playerID:
-                    actionData = action["data"]
-                    print(f"Moving: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
-                    movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
-                elif action["action_type"] == Action.SHOOT and action["player_id"] != playerID:
-                    actionData = action["data"]
-                    print(f"Shooting: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
-                    shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
-
-            respawnSystem.turn()
-            displaySystem.turn()
-
             for tankId, tankData in gameState["vehicles"].items():
                 tankId = str(tankId)
                 
@@ -79,7 +65,11 @@ def run(name):
                 if HexToTuple(tankData["position"]) != tankData2.getComponent("position").position:
                     print(f"MISSMATCH: local:{tankData2.getComponent('position').position}, server:{HexToTuple(tankData['position'])}")
 
-            if gameState["current_player_idx"] == playerID:  # our turn
+            currentPlayer = gameState["current_player_idx"]
+            shootingSystem.test(gameState["attack_matrix"])
+            shootingSystem.turn(currentPlayer)
+
+            if currentPlayer == playerID:  # our turn
                 for tankId in playerTanks:
                     # perform actions
                     options = shootingSystem.getShootingOptions(tankId)
@@ -100,7 +90,32 @@ def run(name):
                 respawnSystem.turn()
                 displaySystem.turn()
 
-            session.nextTurn()
+                session.nextTurn()
+            else:
+                # perform other player actions
+                session.nextTurn()
+                # add missing tanks
+                for tankId, tankData in gameState["vehicles"].items():
+                    tankId = str(tankId)
+                    if not tankManager.hasTank(tankId):
+                        tankManager.addTank(tankId, tankData)
+
+                gameActions = session.getGameActions()
+                for action in gameActions["actions"]:
+                    if action["player_id"] == playerID:
+                        break
+                    if action["action_type"] == Action.MOVE:
+                        actionData = action["data"]
+                        print(f"Moving: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
+                        movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                    elif action["action_type"] == Action.SHOOT:
+                        actionData = action["data"]
+                        print(f"Shooting: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
+                        shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+
+                respawnSystem.turn()
+                displaySystem.turn()
+                        
             gameState = session.getGameState()
 
         # perform other player actions
@@ -121,6 +136,6 @@ def run(name):
         displaySystem.stop()
 
 if __name__ == "__main__":
-    while True:
+    while True:      
         run(random.random())
         time.sleep(10)
