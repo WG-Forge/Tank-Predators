@@ -6,14 +6,14 @@ from Tanks.Tank import Tank
 from Map import Map
 from Tanks.Components.DirectShootingComponent import DirectShootingComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
-from Aliases import positionTuple
+from Aliases import positionTuple, jsonDict
 import itertools
 
 class TankShootingSystem:
     """
     A system that manages the shooting of tanks.
     """
-    def __init__(self, map: Map, eventManager: EventManager):
+    def __init__(self, map: Map, eventManager: EventManager, attackMatrix: jsonDict):
         """
         Initializes the TankShootingSystem.
 
@@ -28,6 +28,7 @@ class TankShootingSystem:
         self.__tankMap = {}
         self.__canShootTrough = ["Empty", "Base"]
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
+        self.__attackMatrix = {int(key) : values for key, values in attackMatrix.items()}
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
@@ -44,9 +45,12 @@ class TankShootingSystem:
             self.__tanks[tankId] = {
                 "shooting": shootingComponent,
                 "position": positionComponent.position,
-                "owner": ownerComponent
+                "owner": ownerComponent.ownerId
             }
             self.__tankMap[positionComponent.position] = tankId
+
+            if not ownerComponent.ownerId in self.__attackMatrix:
+                self.__attackMatrix[ownerComponent.ownerId] = []
 
     def onTankMoved(self, tankId: str, newPosition: positionTuple) -> None:
         """
@@ -84,6 +88,22 @@ class TankShootingSystem:
         else:
             raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
         
+    def __canAttack(self, shooterOwnerId: int, receiverOwnerId: int):
+        if shooterOwnerId == receiverOwnerId:
+            return False
+        
+        attackParticipants = [shooterOwnerId, receiverOwnerId]
+        otherOwnerIds = [key for key in self.__attackMatrix.keys() if key not in attackParticipants]
+
+        if shooterOwnerId in self.__attackMatrix[receiverOwnerId]:
+            return True
+        
+        for otherOwnerId in otherOwnerIds:
+            if receiverOwnerId in self.__attackMatrix[otherOwnerId]:
+                return False
+            
+        return True
+    
     def __distance(self, position1: positionTuple, position2: positionTuple) -> int:
         """
         Returns the distance between two positions.
@@ -104,12 +124,12 @@ class TankShootingSystem:
         """
         shootingOptions = []
 
-        shooterOwnerId = self.__tanks[shooterTankId]["owner"].ownerId
+        shooterOwnerId = self.__tanks[shooterTankId]["owner"]
         shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
 
         for tankId, tankComponents in self.__tanks.items():
-            if shooterOwnerId == tankComponents["owner"].ownerId:
+            if not (self.__canAttack(shooterOwnerId, tankComponents["owner"])):
                 continue
             targetPosition = tankComponents["position"]
             distance = self.__distance(shooterPosition, targetPosition)
@@ -137,7 +157,7 @@ class TankShootingSystem:
                 targetTankId = self.__tankMap.get(currentPosition)
 
                 if targetTankId:
-                    if ownerId != self.__tanks[targetTankId]["owner"].ownerId:
+                    if self.__canAttack(ownerId, self.__tanks[targetTankId]["owner"]):
                         targets.append(targetTankId)
             else:
                 break
@@ -154,7 +174,7 @@ class TankShootingSystem:
         """
         shootingOptions = []
 
-        shooterOwnerId = self.__tanks[shooterTankId]["owner"].ownerId
+        shooterOwnerId = self.__tanks[shooterTankId]["owner"]
         shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
         
@@ -176,7 +196,7 @@ class TankShootingSystem:
         if shooter:
             shootingComponent = shooter["shooting"]
             shooterPosition = shooter["position"]
-            shooterOwnerId = shooter["owner"].ownerId
+            shooterOwnerId = shooter["owner"]
 
             if isinstance(shootingComponent, CurvedShootingComponent):
                 targets = []
@@ -187,7 +207,7 @@ class TankShootingSystem:
 
                 targetId = self.__tankMap[targetPosition]
                 target = self.__tanks[targetId]
-                if shooterOwnerId != target["owner"].ownerId:
+                if shooterOwnerId != target["owner"]:
                     targets.append(targetId)
             elif isinstance(shootingComponent, DirectShootingComponent):
                 targets = []
@@ -201,5 +221,21 @@ class TankShootingSystem:
                 raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{shooterId}")
             
             for targetId in targets:
+                targetOwnerId = self.__tanks[targetId]["owner"]
+                if not targetOwnerId in self.__attackMatrix[shooterOwnerId]:
+                    self.__attackMatrix[shooterOwnerId].append(targetOwnerId)
                 self.__eventManager.triggerEvent(TankShotEvent, targetId, shootingComponent.damage)
 
+    def turn(self, ownerId):
+        self.__attackMatrix[ownerId].clear()
+
+    def test(self, attackMatrixServer):
+        for key, valueList in attackMatrixServer.items():
+            for value in self.__attackMatrix[int(key)]:
+                if value not in valueList:
+                    print("ATTACK MATRIX MISSMATCH")
+                    print("LOCAL:")
+                    print(self.__attackMatrix)
+                    print("SERVER:")
+                    print(attackMatrixServer)
+                    return
