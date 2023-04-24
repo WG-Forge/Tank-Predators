@@ -6,6 +6,7 @@ from HexGrid import *
 from tkinter import *
 from threading import Thread
 from queue import Queue
+import time
 
 class Display:
     def __init__(self, map: Map, messageQueue: Queue) -> None:
@@ -35,20 +36,24 @@ class Display:
 
     def __run(self):
         while True:
-            messageType, args = self.__messageQueue.get(block=True)
+            try:
+                messageType, args = self.__messageQueue.get(block=False)
+            
+                if messageType == "update":
+                    for update in args[0]:
+                        self.__emptyCell(*update)
 
-            if messageType == "update":
-                for update in args[0]:
-                    self.__emptyCell(*update)
-
-                for update in args[1]:
-                    self.__setCell(*update)          
-            elif messageType == "stop":
-                self.__window.quit()
-                return
+                    for update in args[1]:
+                        self.__setCell(*update)          
+                elif messageType == "stop":
+                    self.__window.quit()
+                    return
+            except:
+                pass
 
             self.__window.update_idletasks()
             self.__window.update()
+            time.sleep(0.1)
        
     def __setCell(self, position: tuple, fillColor: str) -> None:
         '''
