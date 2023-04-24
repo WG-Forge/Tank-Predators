@@ -92,14 +92,14 @@ def run(name):
 
                 session.nextTurn()
             else:
-                # perform other player actions
+                # skip turn since it's not our
                 session.nextTurn()
                 # add missing tanks
                 for tankId, tankData in gameState["vehicles"].items():
                     tankId = str(tankId)
                     if not tankManager.hasTank(tankId):
                         tankManager.addTank(tankId, tankData)
-
+                # perform other player actions
                 gameActions = session.getGameActions()
                 for action in gameActions["actions"]:
                     if action["player_id"] == playerID:
@@ -118,24 +118,12 @@ def run(name):
                         
             gameState = session.getGameState()
 
-        # perform other player actions
-        gameActions = session.getGameActions()
-        for action in gameActions["actions"]:
-            if action["action_type"] == Action.MOVE and action["player_id"] != playerID:
-                actionData = action["data"]
-                movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
-            elif action["action_type"] == Action.SHOOT and action["player_id"] != playerID:
-                actionData = action["data"]
-                shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
-        respawnSystem.turn()
-        displaySystem.turn()
-
         print(gameState["winner"])
         session.logout()
-
+        
+        time.sleep(10)
         displaySystem.stop()
 
 if __name__ == "__main__":
     while True:      
         run(random.random())
-        time.sleep(10)
