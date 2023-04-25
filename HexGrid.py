@@ -2,7 +2,6 @@
 # Corresponding conversions are implemented.
 
 from tkinter import *
-import threading
 
 
 class HexaCanvas(Canvas):
@@ -45,6 +44,8 @@ class HexaCanvas(Canvas):
            color5\      /color3
                   5 _  4
                   color4
+
+        Returns an objectID (int) of the created hexagone.
         """
         size = self.hexaSize
         Δy = ((3 ** 0.5) / 2) * size
@@ -78,7 +79,7 @@ class HexaCanvas(Canvas):
         self.create_line(point6, point1, fill=color6, width=2)
 
         if fill is not None:
-            self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
+            return self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
 
 
 class HexagonalGrid(HexaCanvas):
@@ -93,7 +94,10 @@ class HexagonalGrid(HexaCanvas):
 
     def setCell(self, xCell, yCell, *args, **kwargs):
         """ Create a content in the cell of coordinates x and y. Could specify options throughout keywords :
-         color, fill, color1, color2, color3, color4; color5, color6"""
+         color, fill, color1, color2, color3, color4; color5, color6.
+
+         Returns an objectID (int) of the created hexagone. 
+         """
 
         # compute pixel coordinate of the center of the cell:
         size = self.hexaSize
@@ -106,7 +110,16 @@ class HexagonalGrid(HexaCanvas):
         pix_x = size + xCell * 1.5 * size + 5
         pix_y += 5
 
-        self.create_hexagone(pix_x, pix_y, *args, **kwargs)
+        id = self.create_hexagone(pix_x, pix_y, *args, **kwargs)
+    
+    def removeCell(self, xCell, yCell) -> None:
+        '''
+        Removes an already drawn cell from the canvas.
+
+        :param xCell: The x coordinate of the cell.
+        :param yCell: The y coordinate of the cell.
+        '''
+        pass
 
 
 def axial_distance(aq: int, ar: int, bq: int, br: int):
@@ -153,8 +166,15 @@ def cube_to_offset(q: int, r: int):
     return (x, y)
 
 
-# used to keep track of already drawn cells
 grid_set = set()
+'''
+Used to keep track of already drawn cells in draw_grid function.
+'''
+
+drawn_cells_dict = {}
+'''
+Used to keep track of all the cells that are drawn as well 
+'''
 
 
 def draw_grid(grid: HexagonalGrid, size: int, x: int, y: int):
@@ -198,6 +218,6 @@ if __name__ == "__main__":
     grid.grid(row=0, column=0, padx=5, pady=5)
 
     draw_grid(grid, board_size, 0, 0)
-    grid_set.clear()
+    # grid_set.clear()
 
     tk.mainloop()
