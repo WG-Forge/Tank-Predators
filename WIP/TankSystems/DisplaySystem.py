@@ -26,7 +26,6 @@ class Display:
         self.__grid.grid(row=0, column=0, padx=5, pady=5)
 
         draw_grid(self.__grid, self.__size, 0, 0)
-        grid_set.clear()
         self.__initializeMapContent()
         self.__run()
 

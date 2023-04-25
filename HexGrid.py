@@ -79,7 +79,8 @@ class HexaCanvas(Canvas):
         self.create_line(point6, point1, fill=color6, width=2)
 
         if fill is not None:
-            return self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
+            id = self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
+            return id
 
 
 class HexagonalGrid(HexaCanvas):
@@ -111,15 +112,10 @@ class HexagonalGrid(HexaCanvas):
         pix_y += 5
 
         id = self.create_hexagone(pix_x, pix_y, *args, **kwargs)
-    
-    def removeCell(self, xCell, yCell) -> None:
-        '''
-        Removes an already drawn cell from the canvas.
-
-        :param xCell: The x coordinate of the cell.
-        :param yCell: The y coordinate of the cell.
-        '''
-        pass
+        # Delete the old cell.
+        if (xCell, yCell) in drawn_cells_dict:
+            self.delete(drawn_cells_dict[(xCell, yCell)])
+        drawn_cells_dict[(xCell, yCell)] = id
 
 
 def axial_distance(aq: int, ar: int, bq: int, br: int):
@@ -166,20 +162,15 @@ def cube_to_offset(q: int, r: int):
     return (x, y)
 
 
-grid_set = set()
-'''
-Used to keep track of already drawn cells in draw_grid function.
-'''
-
 drawn_cells_dict = {}
 '''
-Used to keep track of all the cells that are drawn as well 
+Used to keep track of all the cells that are drawn as well their objectIDs.
 '''
 
 
 def draw_grid(grid: HexagonalGrid, size: int, x: int, y: int):
     '''
-    Draws the grid. Uses grid_set to keep track of already drawn cells.
+    Draws the grid. Uses drawn_cells_dict to keep track of already drawn cells.
 
     :param size: The size of the grid.
     :param x: The x coordinate of a given cell.
@@ -187,12 +178,10 @@ def draw_grid(grid: HexagonalGrid, size: int, x: int, y: int):
     '''
     axial_coordinates = offset_to_axial(x, y)
     distance_from_center = axial_distance(0, 0, axial_coordinates[0], axial_coordinates[1])
-    if distance_from_center == size or (x, y) in grid_set:
+    if distance_from_center == size or (x + size - 1, y + size - 1) in drawn_cells_dict:
         return
 
-    cellFill = 'green' if distance_from_center < 2 else 'white'
-    grid.setCell(x + size - 1, y + size - 1, fill=cellFill)
-    grid_set.add((x, y))
+    grid.setCell(x + size - 1, y + size - 1, fill='white')
 
     draw_grid(grid, size, x, y - 1)  # up
     if x & 1 == 0:

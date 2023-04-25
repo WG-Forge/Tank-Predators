@@ -2,7 +2,6 @@
 # Corresponding conversions are implemented.
 
 from tkinter import *
-import threading
 
 
 class HexaCanvas(Canvas):
@@ -45,6 +44,8 @@ class HexaCanvas(Canvas):
            color5\      /color3
                   5 _  4
                   color4
+
+        Returns an objectID (int) of the created hexagone.
         """
         size = self.hexaSize
         Δy = ((3 ** 0.5) / 2) * size
@@ -78,7 +79,7 @@ class HexaCanvas(Canvas):
         self.create_line(point6, point1, fill=color6, width=2)
 
         if fill is not None:
-            self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
+            return self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
 
 
 class HexagonalGrid(HexaCanvas):
@@ -93,7 +94,10 @@ class HexagonalGrid(HexaCanvas):
 
     def setCell(self, xCell, yCell, *args, **kwargs):
         """ Create a content in the cell of coordinates x and y. Could specify options throughout keywords :
-         color, fill, color1, color2, color3, color4; color5, color6"""
+         color, fill, color1, color2, color3, color4; color5, color6.
+
+         Returns an objectID (int) of the created hexagone. 
+         """
 
         # compute pixel coordinate of the center of the cell:
         size = self.hexaSize
@@ -106,7 +110,11 @@ class HexagonalGrid(HexaCanvas):
         pix_x = size + xCell * 1.5 * size + 5
         pix_y += 5
 
-        self.create_hexagone(pix_x, pix_y, *args, **kwargs)
+        id = self.create_hexagone(pix_x, pix_y, *args, **kwargs)
+        # Delete the old cell.
+        if (xCell, yCell) in drawn_cells_dict:
+            self.delete(drawn_cells_dict[(xCell, yCell)])
+        drawn_cells_dict[(xCell, yCell)] = id
 
 
 def axial_distance(aq: int, ar: int, bq: int, br: int):
@@ -153,8 +161,10 @@ def cube_to_offset(q: int, r: int):
     return (x, y)
 
 
-# used to keep track of already drawn cells
-grid_set = set()
+drawn_cells_dict = {}
+'''
+Used to keep track of all the cells that are drawn as well 
+'''
 
 
 def draw_grid(grid: HexagonalGrid, size: int, x: int, y: int):
@@ -167,12 +177,10 @@ def draw_grid(grid: HexagonalGrid, size: int, x: int, y: int):
     '''
     axial_coordinates = offset_to_axial(x, y)
     distance_from_center = axial_distance(0, 0, axial_coordinates[0], axial_coordinates[1])
-    if distance_from_center == size or (x, y) in grid_set:
+    if distance_from_center == size or (x + size - 1, y + size - 1) in drawn_cells_dict:
         return
 
-    cellFill = 'green' if distance_from_center < 2 else 'white'
-    grid.setCell(x + size - 1, y + size - 1, fill=cellFill)
-    grid_set.add((x, y))
+    grid.setCell(x + size - 1, y + size - 1, fill='white')
 
     draw_grid(grid, size, x, y - 1)  # up
     if x & 1 == 0:
@@ -198,6 +206,5 @@ if __name__ == "__main__":
     grid.grid(row=0, column=0, padx=5, pady=5)
 
     draw_grid(grid, board_size, 0, 0)
-    grid_set.clear()
 
     tk.mainloop()
