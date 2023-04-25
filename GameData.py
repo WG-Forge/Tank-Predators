@@ -4,6 +4,7 @@ playerTanks = [None] * len(Tanks.turnOrder)  # list of IDs of player's tanks, in
 playerID = -1  # player ID given after the login
 gameMap = None  # Map class object that is used in GUI
 
+gameState = {}
 """
 game state dictionary, updated every turn
 
@@ -34,8 +35,8 @@ Each win point is:
 capture - total number of capture points for a player.
 kill - number of kill points for a player.
 """
-gameState = {}
 
+mapInfo = {}
 """
 Map info dictionary, initialized at the start of the game
 
@@ -59,5 +60,4 @@ light_repair - list of hexes where light repair factories are located. Light rep
 hard_repair - list of hexes where hard repair factories are located. Hard repair factories heal "heavy_tank" and "at_spg".
 catapult - catapult's hexes, catapult improves range of shooting.
 """
-mapInfo = {}
 

@@ -236,6 +236,7 @@ if __name__ == "__main__":
     game.start()
     # Wait until the map is ready to be created.
     mapSemaphore1.acquire()
+    # Create the map.
     GameData.gameMap = Map()
     mapSemaphore2.release()
     GameData.gameMap.showMap()
