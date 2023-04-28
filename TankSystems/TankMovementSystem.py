@@ -27,8 +27,7 @@ class TankMovementSystem:
         self.__tankPositions = {}
         self.__tankMap = {}
         self.__spawnPoints = {}
-        self.__canMoveTo = ["Empty", "Base"]
-        self.__canMoveTrough = ["Empty", "Base"]
+        self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__initializePathingOffsets(maxDistance)
 
@@ -117,10 +116,10 @@ class TankMovementSystem:
                             currentPosition[2]) < mapSize:
                         currentPositionObject = self.__map.objectAt(currentPosition)
                         # Check if the tank can move through the current position
-                        if currentPositionObject in self.__canMoveTrough:
+                        if currentPositionObject in self.__canMoveTo:
                             visited.add(offsetPosition)
                             # Check if the tank can move to the current position and if there is no other tank in that position
-                            if currentPositionObject in self.__canMoveTo and not currentPosition in self.__tankMap:
+                            if not currentPosition in self.__tankMap:
                                 spawnPoint = self.__spawnPoints.get(currentPosition)
                                 # Check if the current position is a spawnpoint
                                 if spawnPoint is not None:
