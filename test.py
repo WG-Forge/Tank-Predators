@@ -47,7 +47,7 @@ def run(name):
         # init systems
         movementSystem = TankMovementSystem(map, eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
         shootingSystem = TankShootingSystem(map, eventManager, gameState["attack_matrix"])
-        healthSystem = TankHealthSystem(eventManager)
+        healthSystem = TankHealthSystem(map, eventManager)
         displaySystem = DisplaySystem(map, eventManager)
         respawnSystem = TankRespawnSystem(eventManager)
 
@@ -57,6 +57,10 @@ def run(name):
                 tankId = str(tankId)
                 if not tankManager.hasTank(tankId):
                     tankManager.addTank(tankId, tankData)
+
+            respawnSystem.turn()
+            healthSystem.turn()
+            displaySystem.turn()
 
             for tankId, tankData in gameState["vehicles"].items():
                 tankId = str(tankId)
@@ -87,9 +91,6 @@ def run(name):
                         session.move({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice])})
                         movementSystem.move(tankId, options[randomChoice])
 
-                respawnSystem.turn()
-                displaySystem.turn()
-
                 session.nextTurn()
             else:
                 # skip turn since it's not our
@@ -112,9 +113,6 @@ def run(name):
                         actionData = action["data"]
                         print(f"Shooting: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
                         shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
-
-                respawnSystem.turn()
-                displaySystem.turn()
                         
             gameState = session.getGameState()
 
