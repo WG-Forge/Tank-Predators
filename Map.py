@@ -26,6 +26,16 @@ class Map:
         for obstacleHex in mapContent["obstacle"]:
             self.__map[HexToTuple(obstacleHex)] = "Obstacle"
 
+        for catapultHex in mapContent["catapult"]:
+            self.__map[HexToTuple(catapultHex)] = "Catapult"    
+
+        for lightRepairHex in mapContent["light_repair"]:
+            self.__map[HexToTuple(lightRepairHex)] = "LightRepair"
+
+        for hardRepairHex in mapContent["hard_repair"]:
+            self.__map[HexToTuple(hardRepairHex)] = "HardRepair"
+
+
     def getSize(self) -> int:
         '''
         Returns the size of the map.

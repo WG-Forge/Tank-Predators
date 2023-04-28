@@ -24,8 +24,12 @@ class Display:
         self.__size = map.getSize()
         self.__colors = {
             "Base": "green",
-            "Obstacle": "gray"
+            "Obstacle": "grey0",
+            "Catapult": "red",
+            "LightRepair": "HotPink3",
+            "HardRepair": "HotPink4",
         }
+
         self.__grid = HexagonalGrid(self.__window, hexaSize=20, grid_width=self.__size, grid_height=self.__size)
         self.__grid.grid(row=0, column=0, padx=5, pady=5)
 
