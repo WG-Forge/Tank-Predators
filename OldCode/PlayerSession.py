@@ -1,5 +1,12 @@
+import Shooting
 from ServerConnection import ServerConnection
+from ServerConnection import Action
 from enum import IntEnum
+from Map import Map
+from Tanks import Tanks
+import GameData
+import random
+import threading
 
 resultDict = dict[str, any]  # result dictionary type
 
@@ -55,7 +62,7 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        data["game"] = "testtesttest24"
+        data["game"] = "testtesttest2"
         data["num_turns"] = 100
         data["num_players"] = 3
         result = self.__handleResult(self.connection.login(data))
@@ -145,3 +152,91 @@ class PlayerSession:
         Close connection to the server socket on exit
         """
         self.connection.close()
+
+
+mapSemaphore1 = threading.Semaphore(0)
+mapSemaphore2 = threading.Semaphore(0)
+
+
+class GameThread(threading.Thread):
+    '''
+    Represents the logic of the game running as a separate thread.
+    '''
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        print("Name: ", end="")
+        name = input()
+        with PlayerSession(name) as session:
+            GameData.playerID = session.login()
+            print(GameData.playerID)
+            GameData.gameState = session.getGameState()
+
+            for tankId, tankData in GameData.gameState["vehicles"].items():
+                if tankData["player_id"] == GameData.playerID:
+                    GameData.playerTanks[Tanks.turnOrder.index(tankData["vehicle_type"])] = tankId
+
+            # Prepare arguments for Map creation.
+            GameData.mapInfo = session.getMapInfo()
+            # Release the semaphore to that the map can be created.
+            mapSemaphore1.release()
+
+            # Wait until the map is ready.
+            mapSemaphore2.acquire()
+            map = GameData.gameMap
+
+            while not GameData.gameState["finished"]:
+                # perform other player actions
+                gameActions = session.getGameActions()
+                for action in gameActions["actions"]:
+                    if action["action_type"] == Action.MOVE and action["player_id"] != GameData.playerID:
+                        actionData = action["data"]
+                        map.move(str(actionData["vehicle_id"]), actionData["target"])
+
+                map.testMap()
+
+                if GameData.gameState["current_player_idx"] == GameData.playerID:  # our turn
+                    for tankId in GameData.playerTanks:
+                        moves = map.getMoves(str(tankId))
+                        tanksInRange = Shooting.getTanksInRange(tankId)
+
+                        action = random.randint(0, 1)  # 0 -> move, 1 -> shoot
+                        if not tanksInRange:
+                            action = 0  # no one to shoot so move
+
+                        if action == 0 and len(moves) > 0:
+                            moveToUse = random.randint(0, len(moves) - 1)
+                           #  print(f"TankId {tankId}, Possible move count : {len(moves)}, Chosen move : {moves[moveToUse]}")
+                            session.move({"vehicle_id": tankId, "target": moves[moveToUse]})
+                            map.move(str(tankId), moves[moveToUse])
+                        elif action == 1 and tanksInRange:
+                            targetId, targetData = random.choice(list(tanksInRange.items()))
+                            print(f"TankId {tankId}, tanks in range : {len(tanksInRange)}, Chosen tank : {targetId}")
+                            session.shoot({"vehicle_id": int(tankId), "target": targetData["position"]})
+
+                session.nextTurn()
+                GameData.gameState = session.getGameState()
+                map.updateMap()
+
+            # perform other player actions
+            gameActions = session.getGameActions()
+            for action in gameActions["actions"]:
+                if action["action_type"] == Action.MOVE:
+                    actionData = action["data"]
+                    map.move(str(actionData["vehicle_id"]), actionData["target"])
+            print(GameData.gameState["winner"])
+            session.logout()
+
+
+if __name__ == "__main__":
+    # Start the game thread.
+    game = GameThread()
+    game.start()
+    # Wait until the map is ready to be created.
+    mapSemaphore1.acquire()
+    # Create the map.
+    GameData.gameMap = Map()
+    mapSemaphore2.release()
+    GameData.gameMap.showMap()

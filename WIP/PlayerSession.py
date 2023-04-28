@@ -55,7 +55,7 @@ class PlayerSession:
         """
         data = dict()
         data["name"] = self.name
-        data["game"] = "testtesttest"
+        data["game"] = "testtesttest23"
         data["num_turns"] = 100
         data["num_players"] = 3
         result = self.__handleResult(self.connection.login(data))
