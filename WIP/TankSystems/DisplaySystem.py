@@ -8,6 +8,10 @@ from threading import Thread
 from queue import Queue
 import time
 
+def runDisplay(map: Map, messageQueue: Queue) -> None:
+    display = Display(map, messageQueue)
+    display.run()
+
 class Display:
     def __init__(self, map: Map, messageQueue: Queue) -> None:
         '''
@@ -27,13 +31,12 @@ class Display:
 
         draw_grid(self.__grid, self.__size, 0, 0)
         self.__initializeMapContent()
-        self.__run()
 
     def __initializeMapContent(self):
         for position, obj in self.__map:
             self.__setCell(position, self.__colors.get(obj, "white"))
 
-    def __run(self):
+    def run(self):
         while True:
             try:
                 messageType, args = self.__messageQueue.get(block=False)
@@ -90,7 +93,7 @@ class DisplaySystem:
         self.__OwnerColors = {}
         self.__tanks = {}
         self.__messageQueue = Queue()
-        self.__displayThread = Thread(target=Display, args=(map, self.__messageQueue))
+        self.__displayThread = Thread(target=runDisplay, args=(map, self.__messageQueue))
         self.__displayThread.start()
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
@@ -137,5 +140,6 @@ class DisplaySystem:
 
     def stop(self) -> None:
         self.__messageQueue.put(("stop", []))
+        self.__displayThread.join()
             
 
