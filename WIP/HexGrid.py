@@ -79,7 +79,8 @@ class HexaCanvas(Canvas):
         self.create_line(point6, point1, fill=color6, width=2)
 
         if fill is not None:
-            return self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
+            id = self.create_polygon(point1, point2, point3, point4, point5, point6, fill=fill)
+            return id
 
 
 class HexagonalGrid(HexaCanvas):
@@ -163,13 +164,13 @@ def cube_to_offset(q: int, r: int):
 
 drawn_cells_dict = {}
 '''
-Used to keep track of all the cells that are drawn as well 
+Used to keep track of all the cells that are drawn as well their objectIDs.
 '''
 
 
 def draw_grid(grid: HexagonalGrid, size: int, x: int, y: int):
     '''
-    Draws the grid. Uses grid_set to keep track of already drawn cells.
+    Draws the grid. Uses drawn_cells_dict to keep track of already drawn cells.
 
     :param size: The size of the grid.
     :param x: The x coordinate of a given cell.
@@ -206,5 +207,6 @@ if __name__ == "__main__":
     grid.grid(row=0, column=0, padx=5, pady=5)
 
     draw_grid(grid, board_size, 0, 0)
+    # grid_set.clear()
 
     tk.mainloop()
