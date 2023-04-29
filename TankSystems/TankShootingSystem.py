@@ -3,6 +3,7 @@ from Events.Events import TankMovedEvent
 from Events.Events import TankShotEvent
 from Events.Events import TankDestroyedEvent
 from Events.Events import TankRespawnedEvent
+from Events.Events import TankRangeBonusEvent
 from Events.EventManager import EventManager
 from Tanks.Tank import Tank
 from Map import Map
@@ -10,12 +11,14 @@ from Tanks.Components.DirectShootingComponent import DirectShootingComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
 from Aliases import positionTuple, jsonDict
 import itertools
+from Utils import HexToTuple
+import logging
 
 class TankShootingSystem:
     """
     A system that manages the shooting of tanks.
     """
-    def __init__(self, map: Map, eventManager: EventManager, attackMatrix: jsonDict):
+    def __init__(self, map: Map, eventManager: EventManager, attackMatrix: jsonDict, catapultUsage: list):
         """
         Initializes the TankShootingSystem.
 
@@ -28,12 +31,66 @@ class TankShootingSystem:
         self.__eventManager.addHandler(TankMovedEvent, self.onTankMoved)
         self.__eventManager.addHandler(TankDestroyedEvent, self.onTankDestroyed)
         self.__eventManager.addHandler(TankRespawnedEvent, self.onTankRespawned)
+        self.__eventManager.addHandler(TankRangeBonusEvent, self.onRangeBonusReceived)
         self.__tanks = {}
         self.__tankMap = {}
-        self.__canShootTrough = ["Empty", "Base"]
+        self.__canShootTrough = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__attackMatrix = {int(key) : values for key, values in attackMatrix.items()}
+        self.__catapultUsage = self.__calculateCatapultUsage(catapultUsage)
 
+    def __calculateCatapultUsage(self, catapultUsage: list) -> dict:
+        """
+        Calculates the usage of each catapult position based on the provided list.
+
+        :param catapultUsage: A history of catapult usage. Catapults can be used a limited number of times.
+        :return: A dictionary where the keys are hex positions and the values are the number of times the catapult at that position was used.
+        """
+        usage = {}
+
+        for hex in catapultUsage:
+            position = HexToTuple(hex)
+            if position not in usage:
+                usage[position] = 1
+            else:
+                usage[position] += 1
+
+        return usage
+
+    def onRangeBonusReceived(self, tankId: str):
+        tank = self.__tanks.get(tankId)
+
+        if tank:
+            shootingComponent = tank["shooting"]
+            tankPosition = tank["position"]
+
+            if not shootingComponent.rangeBonusEnabled:
+                catapultUsage = self.__catapultUsage.get(tankPosition, 0)
+                if catapultUsage == 0:
+                    self.__catapultUsage[tankPosition] = 1
+                elif catapultUsage >= 3:
+                    return
+                else:
+                    self.__catapultUsage[tankPosition] += 1
+                logging.debug(f"Catapult used: TankId:{tankId}, Position:{tankPosition}, TotalUses:{self.__catapultUsage[tankPosition]}")
+                self.__addBonusRange(shootingComponent)
+            
+    def __addBonusRange(self, shootingComponent):
+        if isinstance(shootingComponent, CurvedShootingComponent):
+            shootingComponent.rangeBonusEnabled = True
+            shootingComponent.maxAttackRange += 1
+        elif isinstance(shootingComponent, DirectShootingComponent):
+            shootingComponent.rangeBonusEnabled = True
+            shootingComponent.maxAttackDistance += 1
+
+    def __removeBonusRange(self, shootingComponent):
+        if isinstance(shootingComponent, CurvedShootingComponent):
+            shootingComponent.rangeBonusEnabled = False
+            shootingComponent.maxAttackRange -= 1
+        elif isinstance(shootingComponent, DirectShootingComponent):
+            shootingComponent.rangeBonusEnabled = False
+            shootingComponent.maxAttackDistance -= 1
+                   
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
         Event handler. Adds the tank to the system if it has shooting, owner and position components
@@ -52,10 +109,14 @@ class TankShootingSystem:
                 "owner": ownerComponent.ownerId,
                 "isAlive": True,
             }
+
             self.__tankMap[positionComponent.position] = tankId
 
             if not ownerComponent.ownerId in self.__attackMatrix:
                 self.__attackMatrix[ownerComponent.ownerId] = []
+            
+            if shootingComponent.rangeBonusEnabled:
+                self.__addBonusRange(shootingComponent)
 
     def onTankMoved(self, tankId: str, newPosition: positionTuple) -> None:
         """
@@ -252,6 +313,9 @@ class TankShootingSystem:
                     self.__attackMatrix[shooterOwnerId].append(targetOwnerId)
                 self.__eventManager.triggerEvent(TankShotEvent, targetId, shootingComponent.damage)
 
+            if shootingComponent.rangeBonusEnabled:
+                self.__removeBonusRange(shootingComponent)
+
     def turn(self, ownerId):
         self.__attackMatrix[ownerId].clear()
 
@@ -259,9 +323,9 @@ class TankShootingSystem:
         for key, valueList in attackMatrixServer.items():
             for value in self.__attackMatrix[int(key)]:
                 if value not in valueList:
-                    print("ATTACK MATRIX MISSMATCH")
-                    print("LOCAL:")
-                    print(self.__attackMatrix)
-                    print("SERVER:")
-                    print(attackMatrixServer)
+                    logging.error("ATTACK MATRIX MISSMATCH")
+                    logging.error("LOCAL:")
+                    logging.error(self.__attackMatrix)
+                    logging.error("SERVER:")
+                    logging.error(attackMatrixServer)
                     return
