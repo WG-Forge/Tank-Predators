@@ -7,6 +7,7 @@ from TankSystems.TankShootingSystem import TankShootingSystem
 from TankSystems.TankHealthSystem import TankHealthSystem
 from TankSystems.DisplaySystem import DisplaySystem
 from TankSystems.TankRespawnSystem import TankRespawnSystem
+from TankSystems.PositionBonusSystem import PositionBonusSystem
 import random
 import inspect
 import Events.Events as AllEvents
@@ -15,8 +16,10 @@ from PlayerSession import PlayerSession
 from Utils import HexToTuple
 from Utils import TupleToHex
 from ServerConnection import Action
+import logging
 
 def run(name):
+    logging.basicConfig(level=logging.DEBUG)
     # init event manager and all events
     eventManager = EventManager()
     allEvents = inspect.getmembers(AllEvents, inspect.isclass)
@@ -33,7 +36,7 @@ def run(name):
     # name = input()
     with PlayerSession(name) as session:
         playerID = session.login()
-        print(playerID)   
+        logging.info(playerID)   
 
         gameState = session.getGameState()
         playerTanks = [None] * 5
@@ -46,10 +49,11 @@ def run(name):
         map = Map(mapInfo)
         # init systems
         movementSystem = TankMovementSystem(map, eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
-        shootingSystem = TankShootingSystem(map, eventManager, gameState["attack_matrix"])
-        healthSystem = TankHealthSystem(map, eventManager)
+        shootingSystem = TankShootingSystem(map, eventManager, gameState["attack_matrix"], gameState["catapult_usage"])
+        healthSystem = TankHealthSystem(eventManager)
         displaySystem = DisplaySystem(map, eventManager)
         respawnSystem = TankRespawnSystem(eventManager)
+        positionBonusSystem = PositionBonusSystem(map, eventManager)
 
         while not gameState["finished"]:
             # add missing tanks
@@ -59,7 +63,7 @@ def run(name):
                     tankManager.addTank(tankId, tankData)
 
             respawnSystem.turn()
-            healthSystem.turn()
+            positionBonusSystem.turn()
             displaySystem.turn()
 
             for tankId, tankData in gameState["vehicles"].items():
@@ -67,7 +71,7 @@ def run(name):
                 
                 tankData2 = tankManager.getTank(tankId)
                 if HexToTuple(tankData["position"]) != tankData2.getComponent("position").position:
-                    print(f"MISSMATCH: local:{tankData2.getComponent('position').position}, server:{HexToTuple(tankData['position'])}")
+                    logging.error(f"MISSMATCH: local:{tankData2.getComponent('position').position}, server:{HexToTuple(tankData['position'])}")
 
             currentPlayer = gameState["current_player_idx"]
             shootingSystem.test(gameState["attack_matrix"])
@@ -79,7 +83,7 @@ def run(name):
                     options = shootingSystem.getShootingOptions(tankId)
                     if len(options) > 0:
                         randomChoice = random.randint(0, len(options) - 1)
-                        print(f"Shooting: {tankId}, {options[randomChoice][0]}")
+                        logging.debug(f"Shooting: {tankId}, {options[randomChoice][0]}")
                         session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice][0])})
                         shootingSystem.shoot(tankId, options[randomChoice][0])
                         continue
@@ -87,7 +91,7 @@ def run(name):
                     options = movementSystem.getMovementOptions(tankId)
                     if len(options) > 0:
                         randomChoice = random.randint(0, len(options) - 1)
-                        print(f"Moving: {tankId}, {options[randomChoice]}")
+                        logging.debug(f"Moving: {tankId}, {options[randomChoice]}")
                         session.move({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice])})
                         movementSystem.move(tankId, options[randomChoice])
 
@@ -107,16 +111,16 @@ def run(name):
                         break
                     if action["action_type"] == Action.MOVE:
                         actionData = action["data"]
-                        print(f"Moving: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
+                        logging.debug(f"Moving: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
                         movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
                     elif action["action_type"] == Action.SHOOT:
                         actionData = action["data"]
-                        print(f"Shooting: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
+                        logging.debug(f"Shooting: {actionData['vehicle_id']}, {HexToTuple(actionData['target'])}")
                         shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
                         
             gameState = session.getGameState()
 
-        print(gameState["winner"])
+        logging.info(gameState["winner"])
         session.logout()
         
         time.sleep(10)
