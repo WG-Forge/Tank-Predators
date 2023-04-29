@@ -318,14 +318,3 @@ class TankShootingSystem:
 
     def turn(self, ownerId):
         self.__attackMatrix[ownerId].clear()
-
-    def test(self, attackMatrixServer):
-        for key, valueList in attackMatrixServer.items():
-            for value in self.__attackMatrix[int(key)]:
-                if value not in valueList:
-                    logging.error("ATTACK MATRIX MISSMATCH")
-                    logging.error("LOCAL:")
-                    logging.error(self.__attackMatrix)
-                    logging.error("SERVER:")
-                    logging.error(attackMatrixServer)
-                    return
