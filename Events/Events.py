@@ -14,3 +14,9 @@ class TankDestroyedEvent(Event):
 
 class TankRespawnedEvent(Event):
     pass
+
+class TankRangeBonusEvent(Event):
+    pass
+
+class TankRepairedEvent(Event):
+    pass
