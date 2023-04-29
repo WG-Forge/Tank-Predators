@@ -1,8 +1,6 @@
 from ServerConnection import ServerConnection
 from enum import IntEnum
-
-resultDict = dict[str, any]  # result dictionary type
-
+from Aliases import jsonDict
 
 class Result(IntEnum):
     """
@@ -23,10 +21,11 @@ class Result(IntEnum):
 
 
 class PlayerSession:
-    __slots__ = ("name", "connection")  # class members
+    __slots__ = ("name", "password", "connection")  # class members
 
-    def __init__(self, name):
+    def __init__(self, name, password):
         self.name = name
+        self.password = password
 
     def __enter__(self):
         self.connection = ServerConnection()
@@ -48,16 +47,16 @@ class PlayerSession:
             return None  # Action should be requested again
         return result["data"]
 
-    def login(self) -> int:
+    def login(self, data: jsonDict) -> int:
         """
         Logs the player to the game server.
         :return: player id if login was successful, -1 otherwise
         """
-        data = dict()
         data["name"] = self.name
-        data["game"] = "testtesttest25"
-        data["num_turns"] = 100
-        data["num_players"] = 3
+
+        if self.password:
+            data["password"] = self.password
+
         result = self.__handleResult(self.connection.login(data))
 
         return int(result["idx"])
@@ -84,14 +83,14 @@ class PlayerSession:
         else:  # if all requests Timed out.
             raise Exception("ERROR: TIMEOUT")
 
-    def getMapInfo(self) -> resultDict:
+    def getMapInfo(self) -> jsonDict:
         """
         Returns the game map. Map represents static information about the game.
         :return: data about the map
         """
         return self.__handleResult(self.connection.map())
 
-    def getGameActions(self) -> resultDict:
+    def getGameActions(self) -> jsonDict:
         """
         Gets a list of game actions that happened in the previous turn, representing changes between turns.
 
@@ -108,7 +107,7 @@ class PlayerSession:
         data["message"] = message
         self.__handleResult(self.connection.chat(data))
 
-    def getGameState(self) -> resultDict:
+    def getGameState(self) -> jsonDict:
         """
         Returns the current state of the game. The game state represents dynamic information about the game.
         The game state is updated at the end of a turn.
@@ -116,7 +115,7 @@ class PlayerSession:
         """
         return self.__handleResult(self.connection.game_state())
 
-    def move(self, data) -> resultDict:
+    def move(self, data) -> jsonDict:
         """
         Changes vehicle position.
         :param data:
