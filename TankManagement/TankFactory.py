@@ -31,10 +31,5 @@ class TankFactory:
         :return: The newly created Tank object.
         """
         tankType = tankData["vehicle_type"]
-        spawnPosition = HexToTuple(tankData["spawn_position"])
-        position = HexToTuple(tankData["position"])
-        ownerId = tankData["player_id"]
-        currentHealth = tankData["health"]
-        capturePoints = tankData["capture_points"]
         
-        return self.__tankTypeMapping[tankType](spawnPosition, position, ownerId, currentHealth, capturePoints)
+        return self.__tankTypeMapping[tankType](tankData)

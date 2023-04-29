@@ -7,31 +7,35 @@ from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
 from Tanks.Components.OwnerComponent import OwnerComponent
 from Aliases import positionTuple
 from Aliases import jsonDict
+from Utils import HexToTuple
 
 class Tank(ABC):
     """
     Abstract base class for all tank entities in the game.
     """
     __slots__ = ("__components",)
-    def __init__(self, spawnPosition: positionTuple, position: positionTuple, ownerId: int, currentHealth: int, capturePoints: int, settings: jsonDict) -> None:
+    def __init__(self, tankData: jsonDict, settings: jsonDict) -> None:
         """
         Initializes a new instance of the Tank class.
 
-        :param spawnPosition: A tuple representing the spawn position of the tank.
-        :param position: A tuple representing the current position of the tank.
-        :param ownerId: An integer representing the owner of the tank.
-        :param currentHealth: Optional. An integer representing the current health value of the tank.
-                            If not provided, it will default to the maximum health value.
-        :param capturePoints: An integer representing the capture points of the tank.
+        :param tankData: A dictionary containing all the data of the tank entity.
         :param settings: A dictionary containing all the settings of the tank entity.
         """
         self.__components = {}
+
+        spawnPosition = HexToTuple(tankData["spawn_position"])
+        position = HexToTuple(tankData["position"])
+        ownerId = tankData["player_id"]
+        currentHealth = tankData["health"]
+        capturePoints = tankData["capture_points"]
+        shootingRangeBonus = bool(tankData["shoot_range_bonus"])
+
         self._initializePosition(spawnPosition, position, settings["sp"])
         self._initializeOwner(ownerId)
         self._initializeDestructionReward(settings["destructionPoints"])
         self._initializeHealth(settings["hp"], currentHealth)
         self._initializeCapture(capturePoints)
-        self._initializeShooting(settings)
+        self._initializeShooting(settings, shootingRangeBonus)
 
     def _initializePosition(self, spawnPosition: positionTuple, position: positionTuple, speed: int) -> None:
         """
@@ -74,9 +78,9 @@ class Tank(ABC):
 
         :param capturePoints: An integer representing the capture points of the tank.
         """
-        self._setComponent("capture", BaseCaptureComponent())
+        self._setComponent("capture", BaseCaptureComponent(capturePoints))
 
-    def _initializeShooting(self, settings: jsonDict) -> None:
+    def _initializeShooting(self, settings: jsonDict, shootingRangeBonus: bool) -> None:
         """
         Initializes the shooting component for the tank.
 
@@ -84,8 +88,9 @@ class Tank(ABC):
             - "minAttackRange": An integer representing the minimum attack range of the tank.
             - "maxAttackRange": An integer representing the maximum attack range of the tank.
             - "damage": An integer representing the damage dealt by the tank's attacks.
+        :param rangeBonusEnabled: Indicates whether the attack range bonus is enabled or not.
         """
-        self._setComponent("shooting", CurvedShootingComponent(settings["minAttackRange"], settings["maxAttackRange"], settings["damage"]))
+        self._setComponent("shooting", CurvedShootingComponent(settings["minAttackRange"], settings["maxAttackRange"], settings["damage"], shootingRangeBonus))
     
     def getComponent(self, componentName: str) -> object:
         """
