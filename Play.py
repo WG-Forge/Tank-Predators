@@ -46,9 +46,11 @@ class Game():
         self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
         self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__gameState["attack_matrix"], self.__gameState["catapult_usage"])
         self.__healthSystem = TankHealthSystem(self.__eventManager)
-        self.__displaySystem = DisplaySystem(self.__map, self.__eventManager)
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
+        
+    def __initializeDisplay(self):
+        self.__displaySystem = DisplaySystem(self.__map, self.__eventManager)
 
     def __initializeTurnOrder(self):
         turnOrder = ["spg", "light_tank", "heavy_tank", "medium_tank", "at_spg"]
@@ -63,6 +65,15 @@ class Game():
         self.__initializeEventManager()
         self.__tankManager = TankManager(self.__eventManager)
         self.__initializeSystems()
+        self.__initializeDisplay()
+        self.__initializeTurnOrder()
+
+    def __resetWorld(self):
+        self.__gameState = self.__session.getGameState()
+        self.__initializeEventManager()
+        self.__tankManager = TankManager(self.__eventManager)
+        self.__initializeSystems()
+        self.__displaySystem.reset(self.__eventManager)
         self.__initializeTurnOrder()
 
     def __addMissingTanks(self):
@@ -139,13 +150,11 @@ class Game():
                 self.__gameState = self.__session.getGameState()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
-                previousPlayer = "Unknown"
                 pass
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
                 logging.debug(f"{exception.__class__.__name__}:{exception.message}")
                 previousPlayer = "Unknown"
-                self.quitDisplay()
-                self.__initializeWorld()
+                self.__resetWorld()
             
 
     def quitDisplay(self):
@@ -224,7 +233,7 @@ def play():
                 except AccessDeniedException as exception:
                     print(f"AccessDeniedException:{exception.message}")
                     break
-                
+
                 print("Play again? (Y/Any): ", end="")
                 playAgain = input()
                 game.quitDisplay()
