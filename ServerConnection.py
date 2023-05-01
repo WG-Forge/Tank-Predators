@@ -28,7 +28,6 @@ class ServerConnection:
         '''
         self.__Socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__Socket.connect((self.serverAddress, self.serverPort))
-        self.__Socket.settimeout(30)
 
 
 
