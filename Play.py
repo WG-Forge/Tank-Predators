@@ -91,8 +91,6 @@ class Game():
     def __selfTurn(self):
         for tankId in self.__playerTanks:
             # perform local player actions
-            time.sleep(1)
-            print(tankId)
             try:
                 options = self.__shootingSystem.getShootingOptions(tankId)
                 if len(options) > 0:
