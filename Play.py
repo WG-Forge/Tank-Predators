@@ -18,7 +18,6 @@ from Utils import TupleToHex
 from ServerConnection import Action
 import logging
 from Aliases import jsonDict
-import time
 
 class Game():
     def __init__(self, session: PlayerSession, data: jsonDict) -> None:
@@ -69,6 +68,7 @@ class Game():
         self.__initializeTurnOrder()
 
     def __resetWorld(self):
+        self.__previousPlayer = "Unknown"
         self.__gameState = self.__session.getGameState()
         self.__initializeEventManager()
         self.__tankManager = TankManager(self.__eventManager)
@@ -106,7 +106,9 @@ class Game():
                     self.__movementSystem.move(tankId, options[randomChoice])
             except BadCommandException as exception:
                 logging.debug(f"BadCommandException:{exception.message}")
-                pass
+                if exception.message != "You have already used this vehicle!":
+                    self.__resetWorld()
+                    return
 
         self.__session.nextTurn() 
 
@@ -129,14 +131,14 @@ class Game():
                 self.__shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
 
     def __play(self):
-        previousPlayer = "Unknown"
+        self.__previousPlayer = "Unknown"
 
         while not self.__gameState["finished"]:
             try:
                 self.__addMissingTanks()
                 currentPlayer = self.__gameState["current_player_idx"]
-                if currentPlayer and currentPlayer != previousPlayer:
-                    previousPlayer = currentPlayer
+                if currentPlayer and currentPlayer != self.__previousPlayer:
+                    self.__previousPlayer = currentPlayer
                     self.__turn(currentPlayer)
 
                     if currentPlayer == self.__playerID:  # our turn
@@ -148,10 +150,9 @@ class Game():
                 self.__gameState = self.__session.getGameState()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
-                pass
+                self.__gameState = self.__session.getGameState()
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
                 logging.debug(f"{exception.__class__.__name__}:{exception.message}")
-                previousPlayer = "Unknown"
                 self.__resetWorld()
             
 
