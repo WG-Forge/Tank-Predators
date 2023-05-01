@@ -1,6 +1,7 @@
 from ServerConnection import ServerConnection
 from enum import IntEnum
 from Aliases import jsonDict
+from Exceptions import BadCommandException, AccessDeniedException, InappropriateGameStateException, TimeoutException, InternalServerErrorException
 
 class Result(IntEnum):
     """
@@ -19,32 +20,35 @@ class Result(IntEnum):
 
         return self.value == other  # if it's int
 
-
 class PlayerSession:
-    __slots__ = ("name", "password", "connection")  # class members
+    __slots__ = ("name", "password", "connection", "__errorMapping")  # class members
 
     def __init__(self, name, password):
         self.name = name
         self.password = password
+        self.__errorMapping = {
+            Result.BAD_COMMAND.value: BadCommandException,
+            Result.ACCESS_DENIED.value: AccessDeniedException,
+            Result.INAPPROPRIATE_GAME_STATE.value: InappropriateGameStateException,
+            Result.TIMEOUT.value: TimeoutException,
+            Result.INTERNAL_SERVER_ERROR.value: InternalServerErrorException
+        }
 
     def __enter__(self):
         self.connection = ServerConnection()
         return self
 
-    @staticmethod
-    def __handleResult(result):
+    def __handleResult(self, result):
         """
         Handles error codes and returns data if request was successful
         :param result: result dict from action request with "resultCode" and "data" keys
         :return: result["data"] if the result was okay,
-        None if it was TIMEOUT error.
-        Exception is raised for other error types.
+        Exception is raised for error types.
         """
         code = result["resultCode"]
-        if code == Result.BAD_COMMAND or code == Result.INAPPROPRIATE_GAME_STATE or code == Result.ACCESS_DENIED or code == Result.INTERNAL_SERVER_ERROR:
-            raise Exception("ERROR: " + (Result(code)).name + "\n" + result["data"]["error_message"])
-        elif code == Result.TIMEOUT:
-            return None  # Action should be requested again
+        if code != Result.OKAY:
+            raise self.__errorMapping[code](result["data"]["error_message"])
+
         return result["data"]
 
     def login(self, data: jsonDict) -> int:
@@ -73,15 +77,8 @@ class PlayerSession:
         This allows players to play faster and not wait for the game's time slice.
         The game's time slice is 10 seconds for test battles and 1 second for final battles. All players and observers
         must send the TURN action before the next turn can happen.
-
-        If original turn action timed out, we issue more requests. If all of them time out, Exception is raised.
         """
-        for i in range(100):
-            result = self.__handleResult(self.connection.turn())
-            if result is not None:
-                break
-        else:  # if all requests Timed out.
-            raise Exception("ERROR: TIMEOUT")
+        return self.__handleResult(self.connection.turn())
 
     def getMapInfo(self) -> jsonDict:
         """
