@@ -7,6 +7,7 @@ from tkinter import *
 from threading import Thread
 from queue import Queue
 import time
+import copy
 
 def runDisplay(map: Map, messageQueue: Queue) -> None:
     display = Display(map, messageQueue)
@@ -96,6 +97,7 @@ class DisplaySystem:
         self.__teamColors = ["orange", "purple", "blue"]
         self.__OwnerColors = {}
         self.__tanks = {}
+        self.__turnQueue = [[], []]
         self.__messageQueue = Queue()
         self.__displayThread = Thread(target=runDisplay, args=(map, self.__messageQueue))
         self.__displayThread.start()
@@ -124,26 +126,34 @@ class DisplaySystem:
             if not tankColor:
                 self.__OwnerColors[ownerComponent.ownerId] = self.__teamColors.pop()
                 tankColor = self.__OwnerColors[ownerComponent.ownerId]
-
-            self.__messageQueue.put(("update", [[],[(positionComponent.position, tankColor)]]))
+            self.__turnQueue[1].append((positionComponent.position, tankColor))
 
     def turn(self) -> None:
-        updateList = [[],[]]
-
         for tankData in self.__tanks.values():
             positionComponent = tankData["positionComponent"]
             currentPosition = tankData["position"]
             newPosition = positionComponent.position
             if newPosition != currentPosition:
-                updateList[0].append((currentPosition,))
-                updateList[1].append((newPosition, self.__OwnerColors[tankData["ownerId"]]))
+                self.__turnQueue[0].append((currentPosition,))
+                self.__turnQueue[1].append((newPosition, self.__OwnerColors[tankData["ownerId"]]))
                 tankData["position"] = newPosition
 
-        if len(updateList) > 0:
-            self.__messageQueue.put(("update", updateList))
+        self.__messageQueue.put(("update", copy.deepcopy(self.__turnQueue)))
+        self.__turnQueue[0].clear()
+        self.__turnQueue[1].clear()
 
     def stop(self) -> None:
         self.__messageQueue.put(("stop", []))
         self.__displayThread.join()
+
+    def reset(self, eventManager: EventManager) -> None:
+        self.__eventManager = eventManager
+        self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
+
+        for tankData in self.__tanks.values():
+            self.__turnQueue[0].append((tankData["position"],))
+
+        self.__tanks.clear()
+
             
 
