@@ -5,20 +5,20 @@ from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
 from Aliases import positionTuple
-import itertools
 
 class TankMovementSystem:
     """
     A system that manages the movement of tanks.
     """
 
-    def __init__(self, map: Map, eventManager: EventManager, maxDistance: int) -> None:
+    def __init__(self, map: Map, eventManager: EventManager, pathingOffsets: list[dict[tuple[int, int, int], set[tuple[int, int, int]]]]) -> None:
         """
         Initializes the TankMovementSystem.
 
         :param map: An instance of the Map that holds static game information.
         :param eventManager: The EventManager instance to use for triggering events.
         :param maxDistance: The maximum distance a tank can travel
+        :param pathingOffsets: A list of dictionaries representing all possible positions a target can move to in a given number of steps 
         """
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
@@ -28,48 +28,7 @@ class TankMovementSystem:
         self.__tankMap = {}
         self.__spawnPoints = {}
         self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
-        self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
-        self.__initializePathingOffsets(maxDistance)
-
-    def __initializePathingOffsets(self, maxDistance: int) -> None:
-        """
-        Calculates pathing offsets to a distance of maximum travel distance of any tank.
-        Initializes a list of dictionaries representing all possible positions a tank can move to
-        in a given number of steps (i.e., distance) based on the maximum speed of any tank.
-
-        Each dictionary in the '__pathingOffsets' list contains position keys that map to a set of previous
-        positions that a tank can move from to reach the position. This information is used later to determine
-        possible movement options from any position.
-        """
-
-        # Get the maximum travel distance of any tank.
-        startingPosition = (0, 0, 0)
-
-        # Keep track of which positions have already been visited.
-        visited = set()
-        visited.add(startingPosition)
-
-        # The '__pathingOffsets' list will store dictionaries representing reachable positions at each distance.
-        self.__pathingOffsets = []
-        self.__pathingOffsets.append({startingPosition: {startingPosition}})
-
-        # Perform breadth-first search to find all possible movement options
-        for currentDistance in range(1, maxDistance + 1): \
-                # Create a new dictionary for the current distance
-            self.__pathingOffsets.append({})
-            # Iterate over each position in the previous distance to obtain current distance offsets.
-            for position in self.__pathingOffsets[currentDistance - 1]:
-                for permutation in self.__hexPermutations:
-                    nextPosition = tuple(x + y for x, y in zip(position, permutation))
-                    # If the next position has not been visited before (is not reachable by another source),
-                    # add it to the current distance and add the position as its source.
-                    if not nextPosition in visited:
-                        self.__pathingOffsets[currentDistance][nextPosition] = {position}
-                        visited.add(nextPosition)
-                    # If the next position has already been added to the current distance (is already reachable by another source but at the same distance),
-                    # add the position to the existing set of source positions.
-                    elif nextPosition in self.__pathingOffsets[currentDistance]:
-                        self.__pathingOffsets[currentDistance][nextPosition].add(position)
+        self.__pathingOffsets = pathingOffsets
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
