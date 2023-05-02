@@ -18,6 +18,8 @@ from Utils import TupleToHex
 from ServerConnection import Action
 import logging
 from Aliases import jsonDict
+from Utils import PathingOffsets
+from Bot import Bot
 
 class Game():
     def __init__(self, session: PlayerSession, data: jsonDict) -> None:
@@ -27,10 +29,10 @@ class Game():
         # Get static map data
         mapInfo = self.__session.getMapInfo()
         self.__map = Map(mapInfo)
-
+        self.__pathingOffsets = PathingOffsets(self.__map.getSize())
+        self.__bot = Bot(self.__map, self.__pathingOffsets)
         self.__initializeWorld()
         self.__play()
-    
         self.__session.logout()
 
     def __initializeEventManager(self):
@@ -42,8 +44,8 @@ class Game():
             self.__eventManager.registerEvent(cls)
 
     def __initializeSystems(self):
-        self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager, max(tank["sp"] for tank in TankSettings.TANKS.values()))
-        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__gameState["attack_matrix"], self.__gameState["catapult_usage"])
+        self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager, self.__pathingOffsets)
+        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__pathingOffsets, self.__gameState["attack_matrix"], self.__gameState["catapult_usage"])
         self.__healthSystem = TankHealthSystem(self.__eventManager)
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
@@ -101,9 +103,10 @@ class Game():
 
                 options = self.__movementSystem.getMovementOptions(tankId)
                 if len(options) > 0:
-                    randomChoice = random.randint(0, len(options) - 1)
-                    self.__session.move({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice])})
-                    self.__movementSystem.move(tankId, options[randomChoice])
+                    bestOptions = self.__bot.getBestMove(options)
+                    randomChoice = random.randint(0, len(bestOptions) - 1)
+                    self.__session.move({"vehicle_id": int(tankId), "target": TupleToHex(bestOptions[randomChoice])})
+                    self.__movementSystem.move(tankId, bestOptions[randomChoice])
             except BadCommandException as exception:
                 logging.debug(f"BadCommandException:{exception.message}")
                 if exception.message != "You have already used this vehicle!":
