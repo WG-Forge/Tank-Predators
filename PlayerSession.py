@@ -1,24 +1,7 @@
 from ServerConnection import ServerConnection
-from enum import IntEnum
 from Aliases import jsonDict
 from Exceptions import BadCommandException, AccessDeniedException, InappropriateGameStateException, TimeoutException, InternalServerErrorException
-
-class Result(IntEnum):
-    """
-    Enumerator of all possible result codes given in the docs.
-    """
-    OKAY = 0
-    BAD_COMMAND = 1
-    ACCESS_DENIED = 2
-    INAPPROPRIATE_GAME_STATE = 3
-    TIMEOUT = 4
-    INTERNAL_SERVER_ERROR = 500
-
-    def __eq__(self, other):
-        if isinstance(other, Result):
-            return self.value == other.value
-
-        return self.value == other  # if it's int
+from Constants import Result
 
 class PlayerSession:
     __slots__ = ("name", "password", "connection", "__errorMapping")  # class members

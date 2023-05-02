@@ -9,7 +9,7 @@ from Tanks.Tank import Tank
 from Map import Map
 from Tanks.Components.DirectShootingComponent import DirectShootingComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
-from Aliases import positionTuple, jsonDict
+from Aliases import positionTuple, jsonDict, shootingOptionsList
 import itertools
 from Utils import HexToTuple
 import logging
@@ -150,7 +150,7 @@ class TankShootingSystem:
         if tankId in self.__tanks:
             self.__tanks[tankId]["isAlive"] = True
 
-    def getShootingOptions(self, tankId: str) -> list[tuple[positionTuple,list[str]]]:
+    def getShootingOptions(self, tankId: str) -> shootingOptionsList:
         """
         Returns a list of shooting options for the specified tank.
 
@@ -200,7 +200,7 @@ class TankShootingSystem:
         """
         return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(position1[2] - position2[2])) // 2
     
-    def __getCurvedShootingOptions(self, shooterTankId: str) -> list[tuple[positionTuple,list[str]]]:
+    def __getCurvedShootingOptions(self, shooterTankId: str) -> shootingOptionsList:
         """
         Returns a list of curved shooting options for the specified tank.
 
@@ -253,7 +253,7 @@ class TankShootingSystem:
             
         return targets
 
-    def __getDirectShootingOptions(self, shooterTankId: str) -> list[tuple[positionTuple,list[str]]]:
+    def __getDirectShootingOptions(self, shooterTankId: str) -> shootingOptionsList:
         """
         Returns a list of direct shooting options for the specified tank.
 
@@ -381,3 +381,6 @@ class TankShootingSystem:
                     break
 
         return shootingOptions
+
+    def getBestMove(self, shootingOptions : shootingOptionsList) -> positionTuple:
+        print(shootingOptions)

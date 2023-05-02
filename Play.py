@@ -11,7 +11,8 @@ from TankSystems.PositionBonusSystem import PositionBonusSystem
 import random
 import inspect
 import Events.Events as AllEvents
-from Exceptions import BadCommandException, AccessDeniedException, InappropriateGameStateException, TimeoutException, InternalServerErrorException
+from Exceptions import BadCommandException, AccessDeniedException, InappropriateGameStateException, TimeoutException, \
+    InternalServerErrorException
 from PlayerSession import PlayerSession
 from Utils import HexToTuple
 from Utils import TupleToHex
@@ -21,7 +22,8 @@ from Aliases import jsonDict
 from Utils import PathingOffsets
 from Bot import Bot
 
-class Game():
+
+class Game:
     def __init__(self, session: PlayerSession, data: jsonDict) -> None:
         self.__session = session
         self.__playerID = self.__session.login(data)
@@ -45,11 +47,13 @@ class Game():
 
     def __initializeSystems(self):
         self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager, self.__pathingOffsets)
-        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__pathingOffsets, self.__gameState["attack_matrix"], self.__gameState["catapult_usage"])
+        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__pathingOffsets,
+                                                   self.__gameState["attack_matrix"],
+                                                   self.__gameState["catapult_usage"])
         self.__healthSystem = TankHealthSystem(self.__eventManager)
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
-        
+
     def __initializeDisplay(self):
         self.__displaySystem = DisplaySystem(self.__map, self.__eventManager)
 
@@ -113,7 +117,7 @@ class Game():
                     self.__resetWorld()
                     return
 
-        self.__session.nextTurn() 
+        self.__session.nextTurn()
 
     def __otherTurn(self):
         # skip turn since it's not our
@@ -157,18 +161,19 @@ class Game():
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
                 logging.debug(f"{exception.__class__.__name__}:{exception.message}")
                 self.__resetWorld()
-            
 
     def quitDisplay(self):
         self.__displaySystem.stop()
 
     def isWinner(self) -> bool:
         return self.__playerID == self.__gameState["winner"]
-    
+
+
 class InputException(Exception):
     def __init__(self, message):
         self.message = message
         Exception.__init__(self)
+
 
 def play():
     print("Name: ", end="")
@@ -177,7 +182,7 @@ def play():
     if not name:
         print("Invalid name!")
         return
-    
+
     print("Password (leave empty to skip): ", end="")
     password = input()
 
@@ -206,21 +211,21 @@ def play():
                         data["num_turns"] = turnCount
                     else:
                         raise InputException("Invalid turn count!")
-                    
+
                     print("Enter player count (1-3): ", end="")
                     playerCount = int(input())
                     if 0 < playerCount < 4:
                         data["num_players"] = playerCount
                     else:
                         raise InputException("Invalid player count!")
-                    
+
                 print("Are you an observer? (Y/N): ", end="")
                 isObserver = input()
                 if isObserver.upper() == "Y":
                     data["is_observer"] = True
                 elif not isObserver.upper() == "N":
                     raise InputException("Invalid input!")
-                
+
                 print("Playing...")
                 try:
                     game = Game(session, data)
@@ -246,7 +251,8 @@ def play():
             except ValueError:
                 print("Invalid input!")
 
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)
-  
+
     play()

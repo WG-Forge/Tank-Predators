@@ -1,10 +1,13 @@
 import itertools
 
+
 def HexToTuple(hex):
     return (hex["x"], hex["y"], hex["z"])
 
+
 def TupleToHex(hexTuple):
     return {"x": hexTuple[0], "y": hexTuple[1], "z": hexTuple[2]}
+
 
 def PathingOffsets(maxDistance: int) -> list[dict[tuple[int, int, int], set[tuple[int, int, int]]]]:
     """
