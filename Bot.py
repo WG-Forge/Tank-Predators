@@ -9,10 +9,9 @@ class Bot:
 
     def __init__(self, map: Map, pathingOffsets):
         """
-        Initializes the TankShootingSystem.
+        Initializes the bot.
 
         :param map: An instance of the Map that holds static game information.
-        :param eventManager: The EventManager instance to use for triggering events.
         :param pathingOffsets: A list of dictionaries representing all possible positions a target can move to in a given number of steps 
         """
         self.__map = map
@@ -22,9 +21,7 @@ class Bot:
 
     def __initializeMap(self):
         """
-        Gets all possible moves for a given tank.
-
-        :param tankId: The ID of the tank to get moves for.
+        Initializes each positions value based on distance from a base
         """
 
         self.__valueMap = {}
