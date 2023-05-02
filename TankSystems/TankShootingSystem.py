@@ -18,12 +18,13 @@ class TankShootingSystem:
     """
     A system that manages the shooting of tanks.
     """
-    def __init__(self, map: Map, eventManager: EventManager, attackMatrix: jsonDict, catapultUsage: list):
+    def __init__(self, map: Map, eventManager: EventManager, pathingOffsets: list[dict[tuple[int, int, int], set[tuple[int, int, int]]]], attackMatrix: jsonDict, catapultUsage: list):
         """
         Initializes the TankShootingSystem.
 
         :param map: An instance of the Map that holds static game information.
         :param eventManager: The EventManager instance to use for triggering events.
+        :param pathingOffsets: A list of dictionaries representing all possible positions a target can move to in a given number of steps 
         """
         self.__map = map
         self.__eventManager = eventManager
@@ -38,6 +39,7 @@ class TankShootingSystem:
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__attackMatrix = {int(key) : values for key, values in attackMatrix.items()}
         self.__catapultUsage = self.__calculateCatapultUsage(catapultUsage)
+        self.__pathingOffsets = pathingOffsets
 
     def __calculateCatapultUsage(self, catapultUsage: list) -> dict:
         """
@@ -318,3 +320,64 @@ class TankShootingSystem:
 
     def turn(self, ownerId):
         self.__attackMatrix[ownerId].clear()
+
+    def getShootablePositions(self, tankId: str) -> set[positionTuple]:
+        """
+        Returns a set of shootable positions for the specified tank.
+
+        :param tankId: The ID of the tank for which to get the shooting shootable positions.
+        :return: A set of shootable positions, where each option is represented as a position tuple, 
+        :raises ValueError: If the specified tank ID is not in the shooting system.
+        :raises KeyError: If the shooting component of the specified tank is not recognized.
+        """
+        tank = self.__tanks.get(tankId)
+
+        if tank is None:
+            raise ValueError(f"TankId:{tankId} is not in the shooting system")
+        
+        shootingComponent = tank["shooting"]
+
+        if isinstance(shootingComponent, CurvedShootingComponent):
+            return self.__getCurvedShootablePositions(tankId)
+        elif isinstance(shootingComponent, DirectShootingComponent):
+            return self.__getDirectShootablePositions(tankId)
+        else:
+            raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
+        
+    def __getCurvedShootablePositions(self, shooterTankId: str) -> set[positionTuple]:
+        """
+        Returns a set of curved shootable positions for the specified tank.
+
+        :param shooterTankId: The ID of the tank for which to get the shooting options.
+        :return: A set of shooting options, where each option is represented as a position tuple
+        """
+        shootingOptions = set()
+        shooterPosition = self.__tanks[shooterTankId]["position"]
+        shootingComponent = self.__tanks[shooterTankId]["shooting"]
+
+        for distance in range(shootingComponent.minAttackRange, shootingComponent.maxAttackRange + 1):
+            for offset in self.__pathingOffsets[distance]:
+                shootingOptions.add(tuple(x + y for x, y in zip(shooterPosition, offset)))
+
+        return shootingOptions
+    
+    def __getDirectShootablePositions(self, shooterTankId: str) -> set[positionTuple]:
+        """
+        Returns a set of direct shootable positions for the specified tank.
+
+        :param shooterTankId: The ID of the tank for which to get the shooting options.
+        :return: A set of shooting options, where each option is represented as a position tuple
+        """
+        shootingOptions = set()
+        shooterPosition = self.__tanks[shooterTankId]["position"]
+        shootingComponent = self.__tanks[shooterTankId]["shooting"]
+
+        for permutation in self.__hexPermutations:
+            for distance in range(1, shootingComponent.maxAttackDistance + 1):
+                shootingPosition = tuple(x + y * distance for x, y in zip(shooterPosition, permutation))
+                if self.__map.objectAt(shooterPosition) in self.__canShootTrough:
+                    shootingOptions.add(shootingPosition)
+                else:
+                    break
+
+        return shootingOptions
