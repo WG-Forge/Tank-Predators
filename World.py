@@ -46,6 +46,7 @@ class World():
         self.__healthSystem.reset()
         self.__respawnSystem.reset()
         self.__positionBonusSystem.reset()
+        self.__bot.reset()
 
     def addMissingTanks(self, gameState: jsonDict):
         for tankId, tankData in gameState["vehicles"].items():
