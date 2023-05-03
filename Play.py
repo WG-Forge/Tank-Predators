@@ -48,6 +48,7 @@ class Game:
                 self.__playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
     def __selfTurn(self):
+        self.__bot.getBestTargets(self.__playerTanks)  # calculate best targets to shoot at
         for tankId in self.__playerTanks:
             # perform local player actions
             try:

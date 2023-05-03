@@ -51,3 +51,7 @@ class ShootingPriority(IntEnum):
     IS_IN_BASE = 1  # tank is in central base
     CAN_BE_DESTROYED = 1
     MULTIPLE_TANKS_NEEDED_PENALTY = -0.25
+
+
+class GameConstants(IntEnum):
+    NUMBER_OF_PLAYER_TANKS = 5

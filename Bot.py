@@ -2,7 +2,7 @@ from Map import Map
 from Aliases import positionTuple, shootingOptionsList
 import math
 import random
-from Constants import ActionModifier, ShootingPriority
+from Constants import ActionModifier, ShootingPriority, GameConstants
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
@@ -27,6 +27,7 @@ class Bot:
         self.__movementSystem = movementSystem
         self.__shootingSystem = shootingSystem
         self.__tanks = {}
+        self.__shootingPositions = {}  # dict[playerTankId, positionTuple]
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
 
@@ -141,14 +142,30 @@ class Bot:
             enemyTank = self.__tanks[enemyId]
             priority = 0
             if self.__map.objectAt(enemyTank.getComponent("position").position) == "Base":
-                priority += ShootingPriority.IS_IN_BASE
-
+                #priority += ShootingPriority.IS_IN_BASE
+                pass
+            priorities[enemyId] = priority
         return priorities
 
-    def __getBestTargets(self, playerTanks: list[str]):
+    def getBestTargets(self, playerTanks: list[str]):
+        self.__shootingPositions = dict()  # clearing data from past turns
+        numTanks = len(playerTanks)
         shootableTanks = self.__getAllShootableTanks(playerTanks)
         tankPriorities = self.__getTankShootingPriority(shootableTanks)
-
+        # sorted by priority descending
+        enemyTanksSorted = [k for k, v in sorted(tankPriorities.items(), key=lambda item: item[1], reverse=True)]
+        numUsed = 0
+        for enemyId in enemyTanksSorted:
+            for allyId, shootingPosition in shootableTanks[enemyId]:
+                if allyId in self.__shootingPositions:
+                    continue
+                self.__shootingPositions[allyId] = shootingPosition
+                numUsed += 1
+                if numUsed == 5:
+                    break
+            else:
+                continue  # if there was no break
+            break  # if there were a break
 
     def __getBestTarget(self, allyTank: Tank, shootingOptions) -> tuple[positionTuple, float]:
         """
@@ -171,14 +188,12 @@ class Bot:
                 # target is at central base
                 if self.__map.objectAt(targetTank.getComponent("position").position) == "Base":
                     modifiers[i] += ActionModifier.ENEMY_TANK_ON_CENTRAL_BASE.value
-                    pass
 
                 # checking target health
                 targetHealth = targetTank.getComponent("health").currentHealth
                 allyDamage = allyTank.getComponent("shooting").damage
                 if allyDamage >= targetHealth:
                     modifiers[i] += ActionModifier.ENOUGH_TO_DESTROY.value
-                    pass
 
         # finding max modifier value
         maxModifier = modifiers[0]
@@ -213,15 +228,13 @@ class Bot:
                or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
 
     def getAction(self, tankId: str) -> tuple[str, positionTuple]:
-        shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
-        movementOptions = self.__movementSystem.getMovementOptions(tankId)
-        if len(shootingOptions) > 0:
-            bestShootingTarget, actionType = self.__getBestAction(tankId, shootingOptions, movementOptions)
+        if tankId in self.__shootingPositions:
             # if actionType == "shoot":
-            # print(bestShootingTarget)
             # randomChoice = random.randint(0, len(shootingOptions) - 1)
             # return "shoot", shootingOptions[randomChoice][0]
-            return "shoot", bestShootingTarget
+
+            return "shoot", self.__shootingPositions[tankId]
+        movementOptions = self.__movementSystem.getMovementOptions(tankId)
         if len(movementOptions) > 0:
             bestOptions = self.__getBestMove(movementOptions)
             randomChoice = random.randint(0, len(bestOptions) - 1)
