@@ -2,7 +2,7 @@ from Map import Map
 from Aliases import positionTuple, shootingOptionsList
 import math
 import random
-from Constants import ActionModifier
+from Constants import ActionModifier, ShootingPriority
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
@@ -134,6 +134,21 @@ class Bot:
                     shootableTanks[enemyId].append((tankId, shootingOptions[i][0]))
 
         return shootableTanks
+
+    def __getTankShootingPriority(self, shootableTanks: dict[str, list[tuple[str, positionTuple]]]) -> dict[str, int]:
+        priorities = dict()
+        for enemyId in shootableTanks.keys():
+            enemyTank = self.__tanks[enemyId]
+            priority = 0
+            if self.__map.objectAt(enemyTank.getComponent("position").position) == "Base":
+                priority += ShootingPriority.IS_IN_BASE
+
+        return priorities
+
+    def __getBestTargets(self, playerTanks: list[str]):
+        shootableTanks = self.__getAllShootableTanks(playerTanks)
+        tankPriorities = self.__getTankShootingPriority(shootableTanks)
+
 
     def __getBestTarget(self, allyTank: Tank, shootingOptions) -> tuple[positionTuple, float]:
         """

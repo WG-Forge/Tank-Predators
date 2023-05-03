@@ -44,3 +44,10 @@ class ActionModifier(IntEnum):
     ENOUGH_TO_DESTROY = 1  # we can destroy enemy tank
     NUMBER_OF_TARGETS = 0.334  # bonus modifier if there are multiple targets(if there is 3 targets bonus is >1)
     ENEMY_TANK_ON_CENTRAL_BASE = 0.7
+
+
+class ShootingPriority(IntEnum):
+    CAPTURED_POINTS = 1  # one for each captured point
+    IS_IN_BASE = 1  # tank is in central base
+    CAN_BE_DESTROYED = 1
+    MULTIPLE_TANKS_NEEDED_PENALTY = -0.25
