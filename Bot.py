@@ -103,7 +103,7 @@ class Bot:
         :return: tuple of positionTuple(tile at which we should fire) and int final modifier value
         """
         numOptions = len(shootingOptions)
-        allyTank = self.__tankManager.getTank(tankID)
+        allyTank = self.__tanks[tankID]
         if numOptions == 0:
             return (-1, -1, -1), -1  # -1 because there are no possible options
 
@@ -114,7 +114,7 @@ class Bot:
             modifiers[i] += ShootingModifier.NUMBER_OF_TARGETS * numberOfTargets
             # turns left
             for j in range(numberOfTargets):
-                targetTank = self.__tankManager.getTank(shootingOptions[i][1][j])
+                targetTank = self.__tanks[shootingOptions[i][1][j]]
                 # target is at central base
                 if self.__map.objectAt(shootingOptions[i][0]) == "Base":
                     modifiers[i] += ShootingModifier.TANK_ON_CENTRAL_BASE
