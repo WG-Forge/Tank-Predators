@@ -6,7 +6,7 @@ Pavle Prodanovic <br/>
 Armandas Puidokas <br/>
 
 ## How to start the game:
-Run Play.py where you can choose username, password, to create/join game as player/observer
+Run Play.py where you can choose username, password, to create/join game as player/observer<br/>
 Python version recommended: 3.10
 
 ## Current version(finished Stage IV):
