@@ -137,7 +137,7 @@ class Bot:
         options = self.__shootingSystem.getShootingOptions(tankId)
         if len(options) > 0:
             maxTuple, maxModifier = self.__getBestTarget(tankId, options)
-            if maxModifier != -1:
+            if maxModifier > 0:
                 return ("shoot", maxTuple)
 
         options = self.__movementSystem.getMovementOptions(tankId)

@@ -52,7 +52,7 @@ class Map:
         :return: A string representing the name of the map.
         '''
         return self.__name
-    
+
     def objectAt(self, position: positionTuple) -> str:
         '''
         Returns the name of the object located at the given position.
