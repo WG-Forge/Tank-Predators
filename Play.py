@@ -51,8 +51,6 @@ class Game:
         for tankId in self.__playerTanks:
             # perform local player actions
             try:
-                print(tankId)
-                time.sleep(1)
                 action, targetPosition = self.__bot.getAction(tankId)
                 if action == "shoot":
                     self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
@@ -86,7 +84,7 @@ class Game:
     def __play(self):
         self.__previousPlayer = "Unknown"
 
-        while not self.__gameState["finished"]:
+        while True:
             try:
                 currentPlayer = self.__gameState["current_player_idx"]
                 if currentPlayer and currentPlayer != self.__previousPlayer:
@@ -94,6 +92,8 @@ class Game:
                     self.__gameState = self.__session.getGameState()
                     self.__world.addMissingTanks(self.__gameState)
                     self.__world.turn(currentPlayer)
+                    if self.__gameState["finished"]:
+                        break
 
                     if currentPlayer == self.__playerID:  # our turn
                         self.__selfTurn()
