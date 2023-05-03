@@ -6,19 +6,26 @@ from Events.Events import TankRespawnedEvent
 from Events.Events import TankRangeBonusEvent
 from Events.EventManager import EventManager
 from Tanks.Tank import Tank
+from TankManagement.TankManager import TankManager
 from Map import Map
 from Tanks.Components.DirectShootingComponent import DirectShootingComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
-from Aliases import positionTuple, jsonDict
+from Tanks.Components.HealthComponent import HealthComponent
+from Aliases import positionTuple, jsonDict, shootingOptionsList
 import itertools
 from Utils import HexToTuple
+from Constants import ShootingModifier
 import logging
+
 
 class TankShootingSystem:
     """
     A system that manages the shooting of tanks.
     """
-    def __init__(self, map: Map, eventManager: EventManager, pathingOffsets: list[dict[tuple[int, int, int], set[tuple[int, int, int]]]], attackMatrix: jsonDict, catapultUsage: list):
+
+    def __init__(self, map: Map, eventManager: EventManager,
+                 pathingOffsets: list[dict[tuple[int, int, int], set[tuple[int, int, int]]]], attackMatrix: jsonDict,
+                 catapultUsage: list, tankManager: TankManager):
         """
         Initializes the TankShootingSystem.
 
@@ -35,6 +42,7 @@ class TankShootingSystem:
         self.__eventManager.addHandler(TankRangeBonusEvent, self.onRangeBonusReceived)
         self.__tanks = {}
         self.__tankMap = {}
+        self.__tankManager = tankManager
         self.__canShootTrough = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__initializeAttackMatrix(attackMatrix)
@@ -74,9 +82,10 @@ class TankShootingSystem:
                     return
                 else:
                     self.__catapultUsage[tankPosition] += 1
-                logging.debug(f"Catapult used: TankId:{tankId}, Position:{tankPosition}, TotalUses:{self.__catapultUsage[tankPosition]}")
+                logging.debug(
+                    f"Catapult used: TankId:{tankId}, Position:{tankPosition}, TotalUses:{self.__catapultUsage[tankPosition]}")
                 self.__addBonusRange(shootingComponent)
-            
+
     def __addBonusRange(self, shootingComponent):
         if isinstance(shootingComponent, CurvedShootingComponent):
             shootingComponent.rangeBonusEnabled = True
@@ -92,7 +101,7 @@ class TankShootingSystem:
         elif isinstance(shootingComponent, DirectShootingComponent):
             shootingComponent.rangeBonusEnabled = False
             shootingComponent.maxAttackDistance -= 1
-                   
+
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
         Event handler. Adds the tank to the system if it has shooting, owner and position components
@@ -116,7 +125,7 @@ class TankShootingSystem:
 
             if not ownerComponent.ownerId in self.__attackMatrix:
                 self.__attackMatrix[ownerComponent.ownerId] = []
-            
+
             if shootingComponent.rangeBonusEnabled:
                 self.__addBonusRange(shootingComponent)
 
@@ -150,7 +159,7 @@ class TankShootingSystem:
         if tankId in self.__tanks:
             self.__tanks[tankId]["isAlive"] = True
 
-    def getShootingOptions(self, tankId: str) -> list[tuple[positionTuple,list[str]]]:
+    def getShootingOptions(self, tankId: str) -> shootingOptionsList:
         """
         Returns a list of shooting options for the specified tank.
 
@@ -164,7 +173,7 @@ class TankShootingSystem:
 
         if tank is None:
             raise ValueError(f"TankId:{tankId} is not in the shooting system")
-        
+
         shootingComponent = tank["shooting"]
 
         if isinstance(shootingComponent, CurvedShootingComponent):
@@ -173,23 +182,23 @@ class TankShootingSystem:
             return self.__getDirectShootingOptions(tankId)
         else:
             raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
-        
+
     def __canAttack(self, shooterTankId: str, shooterOwnerId: int, receiverTankId, receiverOwnerId: int):
         if shooterOwnerId == receiverOwnerId or not self.__tanks[receiverTankId]["isAlive"]:
             return False
-        
+
         attackParticipants = [shooterOwnerId, receiverOwnerId]
         otherOwnerIds = [key for key in self.__attackMatrix.keys() if key not in attackParticipants]
 
         if shooterOwnerId in self.__attackMatrix[receiverOwnerId]:
             return True
-        
+
         for otherOwnerId in otherOwnerIds:
             if receiverOwnerId in self.__attackMatrix[otherOwnerId]:
                 return False
-            
+
         return True
-    
+
     def __distance(self, position1: positionTuple, position2: positionTuple) -> int:
         """
         Returns the distance between two positions.
@@ -198,9 +207,10 @@ class TankShootingSystem:
         :param position2: The second position.
         :return: The distance between the two positions.
         """
-        return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(position1[2] - position2[2])) // 2
-    
-    def __getCurvedShootingOptions(self, shooterTankId: str) -> list[tuple[positionTuple,list[str]]]:
+        return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(
+            position1[2] - position2[2])) // 2
+
+    def __getCurvedShootingOptions(self, shooterTankId: str) -> shootingOptionsList:
         """
         Returns a list of curved shooting options for the specified tank.
 
@@ -224,8 +234,9 @@ class TankShootingSystem:
                 shootingOptions.append((targetPosition, [tankId]))
 
         return shootingOptions
-    
-    def __getDirectShootingTargets(self, shooterTankId, ownerId, startingPosition, targetPermutation, maxAttackDistance) -> list[str]:
+
+    def __getDirectShootingTargets(self, shooterTankId, ownerId, startingPosition, targetPermutation,
+                                   maxAttackDistance) -> list[str]:
         """
         Returns a list of tank IDs that can be hit by direct shooting.
 
@@ -237,12 +248,12 @@ class TankShootingSystem:
         :return: A list of tank IDs that can be hit by direct shooting.
         """
         targets = []
-        
+
         for distance in range(1, maxAttackDistance + 1):
             currentPosition = tuple(x + y * distance for x, y in zip(startingPosition, targetPermutation))
             if self.__map.objectAt(currentPosition) in self.__canShootTrough:
                 targetTankId = self.__tankMap.get(currentPosition)
-                
+
                 if not targetTankId:
                     continue
 
@@ -250,10 +261,10 @@ class TankShootingSystem:
                     targets.append(targetTankId)
             else:
                 break
-            
+
         return targets
 
-    def __getDirectShootingOptions(self, shooterTankId: str) -> list[tuple[positionTuple,list[str]]]:
+    def __getDirectShootingOptions(self, shooterTankId: str) -> shootingOptionsList:
         """
         Returns a list of direct shooting options for the specified tank.
 
@@ -266,14 +277,15 @@ class TankShootingSystem:
         shooterOwnerId = self.__tanks[shooterTankId]["owner"]
         shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
-        
 
         for permutation in self.__hexPermutations:
             shootingDirection = tuple(x + y for x, y in zip(shooterPosition, permutation))
-            shootingOptions.append((shootingDirection, self.__getDirectShootingTargets(shooterTankId, shooterOwnerId, shooterPosition, permutation, shootingComponent.maxAttackDistance)))
+            shootingOptions.append((shootingDirection,
+                                    self.__getDirectShootingTargets(shooterTankId, shooterOwnerId, shooterPosition,
+                                                                    permutation, shootingComponent.maxAttackDistance)))
 
         return [shootingOption for shootingOption in shootingOptions if len(shootingOption[1])]
-    
+
     def shoot(self, shooterId: str, targetPosition: positionTuple) -> None:
         """
         Handles shooting from a tank to a target position.
@@ -291,7 +303,8 @@ class TankShootingSystem:
                 targets = []
                 if not targetPosition in self.__tankMap:
                     pass
-                if shootingComponent.minAttackRange > self.__distance(targetPosition , shooterPosition) > shootingComponent.maxAttackRange:
+                if shootingComponent.minAttackRange > self.__distance(targetPosition,
+                                                                      shooterPosition) > shootingComponent.maxAttackRange:
                     pass
 
                 targetId = self.__tankMap[targetPosition]
@@ -305,10 +318,11 @@ class TankShootingSystem:
                 if not permutation in self.__hexPermutations:
                     pass
 
-                targets = self.__getDirectShootingTargets(shooterId, shooterOwnerId, shooterPosition, permutation, shootingComponent.maxAttackDistance)
+                targets = self.__getDirectShootingTargets(shooterId, shooterOwnerId, shooterPosition, permutation,
+                                                          shootingComponent.maxAttackDistance)
             else:
                 raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{shooterId}")
-            
+
             for targetId in targets:
                 targetOwnerId = self.__tanks[targetId]["owner"]
                 if not targetOwnerId in self.__attackMatrix[shooterOwnerId]:
@@ -331,7 +345,7 @@ class TankShootingSystem:
 
         if tank is None:
             raise ValueError(f"TankId:{tankId} is not in the shooting system")
-        
+
         shootingComponent = tank["shooting"]
 
         if isinstance(shootingComponent, CurvedShootingComponent):
@@ -340,7 +354,7 @@ class TankShootingSystem:
             return self.__getDirectShootablePositions(tankId)
         else:
             raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
-        
+
     def __getCurvedShootablePositions(self, shooterTankId: str) -> set[positionTuple]:
         """
         Returns a set of curved shootable positions for the specified tank.
@@ -357,7 +371,7 @@ class TankShootingSystem:
                 shootingOptions.add(tuple(x + y for x, y in zip(shooterPosition, offset)))
 
         return shootingOptions
-    
+
     def __getDirectShootablePositions(self, shooterTankId: str) -> set[positionTuple]:
         """
         Returns a set of direct shootable positions for the specified tank.
@@ -387,3 +401,44 @@ class TankShootingSystem:
         self.__initializeCatapultUsage(catapultUsage)
         self.__tankMap.clear()
         self.__tanks.clear()
+
+    def getBestTarget(self, tankID: str, shootingOptions: shootingOptionsList) -> tuple[positionTuple, int]:
+        """
+        Determines best possible target to shoot, depending on current game state.
+        The bigger the final modifier values is, the greater is the benefit of shooting at the target
+        Target with modifiers below zero should not be considered for shooting
+
+        :param: tankID of tank that shoots
+        :param: shootingOptions shootingOptionsList of all possible targets
+        :return: tuple of positionTuple(tile at which we should fire) and int final modifier value
+        """
+        numOptions = len(shootingOptions)
+        allyTank = self.__tankManager.getTank(tankID)
+        if numOptions == 0:
+            return (-1, -1, -1), -1  # -1 because there are no possible options
+
+        modifiers = [0 for _ in range(numOptions)]
+        for i in range(numOptions):
+            numberOfTargets = len(shootingOptions[i][1])
+            # number of targets we will shoot
+            modifiers[i] += ShootingModifier.NUMBER_OF_TARGETS * numberOfTargets
+            # turns left
+            for j in range(numberOfTargets):
+                targetTank = self.__tankManager.getTank(shootingOptions[i][1][j])
+                # target is at central base
+                if self.__map.objectAt(shootingOptions[i][0]) == "Base":
+                    modifiers[i] += ShootingModifier.TANK_ON_CENTRAL_BASE
+                # checking target health
+                targetHealth = targetTank.getComponent("health").currentHealth
+                allyDamage = allyTank.getComponent("shooting").damage
+                if allyDamage >= targetHealth:
+                    modifiers[i] += ShootingModifier.ENOUGH_TO_DESTROY
+
+        maxModifier = modifiers[0]
+        maxTuple = shootingOptions[0][0]
+        for i in range(1, numOptions):
+            if modifiers[i] > maxModifier:
+                maxModifier = modifiers[i]
+                maxTuple = shootingOptions[i][0]
+
+        return maxTuple, maxModifier

@@ -4,10 +4,12 @@ from Events.EventExceptions import HandlerNotInEvent
 from Events.EventExceptions import HandlerArgumentMismatch
 import inspect
 
+
 class Event(ABC):
     """
     An abstract base class for events.
     """
+
     def __init__(self) -> None:
         self.__handlers = []
 
@@ -43,6 +45,7 @@ class Event(ABC):
             passedParamCount = len(args) + len(kwargs)
 
             if signatureParamCount != passedParamCount:
-                raise HandlerArgumentMismatch(f"Handler {handler.__name__} takes {signatureParamCount} arguments, but {passedParamCount} were passed to the event")
-            
+                raise HandlerArgumentMismatch(
+                    f"Handler {handler.__name__} takes {signatureParamCount} arguments, but {passedParamCount} were passed to the event")
+
             handler(*args, **kwargs)
