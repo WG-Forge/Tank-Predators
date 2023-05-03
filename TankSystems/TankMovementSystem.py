@@ -44,7 +44,7 @@ class TankMovementSystem:
             self.__tankMap[positionComponent.position] = tankId
             self.__spawnPoints[positionComponent.spawnPosition] = tankId
 
-    def getMovementOptions(self, tankId: str):
+    def getMovementOptions(self, tankId: str) -> list[positionTuple]:
         """
         Gets all possible moves for a given tank.
 

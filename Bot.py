@@ -7,6 +7,7 @@ from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
 
+
 class Bot:
     settings = {
         "CaptureDistanceMultiplier": 0.95
@@ -28,6 +29,7 @@ class Bot:
         self.__tanks = {}
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
+
 
     def __initializeMap(self):
         """
@@ -72,7 +74,7 @@ class Bot:
                         # Check if the tank can move through the current position
                         if currentPositionObject in self.__canMoveTo and currentPositionObject != "Base":
                             currentValue = self.__valueMap.get(currentPosition, -math.inf)
-                            newValue = distanceMultiplier**(currentDistance - 1)
+                            newValue = distanceMultiplier ** (currentDistance - 1)
                             if newValue >= currentValue:
                                 visited.add(offsetPosition)
                                 self.__valueMap[currentPosition] = newValue
@@ -91,8 +93,18 @@ class Bot:
                 maxPositions.append(move)
 
         return maxPositions
-    
-    def __getBestTarget(self, tankID: str, shootingOptions: shootingOptionsList) -> tuple[positionTuple, int]:
+
+    def __getTileTypesInRange(self, movementOptions: list[positionTuple]) -> list[str]:
+        """
+        Returns list of all tile types in movement range
+        """
+        tileTypes = set()
+        for position in movementOptions:
+            tileTypes.add(self.__map.objectAt(position))
+
+        return list(tileTypes)
+
+    def __getBestTarget(self, tankID: str, shootingOptions) -> tuple[positionTuple, int]:
         """
         Determines best possible target to shoot, depending on current game state.
         The bigger the final modifier values is, the greater is the benefit of shooting at the target
@@ -100,6 +112,7 @@ class Bot:
 
         :param: tankID of tank that shoots
         :param: shootingOptions shootingOptionsList of all possible targets
+        :param: movementOptions list[positionTuple] of all possible moves
         :return: tuple of positionTuple(tile at which we should fire) and int final modifier value
         """
         numOptions = len(shootingOptions)
@@ -112,9 +125,10 @@ class Bot:
             numberOfTargets = len(shootingOptions[i][1])
             # number of targets we will shoot
             modifiers[i] += ShootingModifier.NUMBER_OF_TARGETS * numberOfTargets
-            # turns left
+            targetsDamage = 0
             for j in range(numberOfTargets):
                 targetTank = self.__tanks[shootingOptions[i][1][j]]
+                targetsDamage += targetTank.getComponent("shooting").damage
                 # target is at central base
                 if self.__map.objectAt(shootingOptions[i][0]) == "Base":
                     modifiers[i] += ShootingModifier.TANK_ON_CENTRAL_BASE
@@ -132,22 +146,24 @@ class Bot:
                 maxTuple = shootingOptions[i][0]
 
         return maxTuple, maxModifier
-      
-    def getAction(self, tankId: str):
-        options = self.__shootingSystem.getShootingOptions(tankId)
-        if len(options) > 0:
-            maxTuple, maxModifier = self.__getBestTarget(tankId, options)
-            if maxModifier > 0:
-                return ("shoot", maxTuple)
 
-        options = self.__movementSystem.getMovementOptions(tankId)
-        if len(options) > 0:
-            bestOptions = self.__getBestMove(options)
+    def __chooseAction(self, tankId: str):
+        pass
+
+    def getAction(self, tankId: str) -> tuple[str, positionTuple]:
+        shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
+        movementOptions = self.__movementSystem.getMovementOptions(tankId)
+        if len(shootingOptions) > 0:
+            maxTuple, maxModifier = self.__getBestTarget(tankId, shootingOptions, movementOptions)
+            if maxModifier > 0:
+                return "shoot", maxTuple
+        if len(movementOptions) > 0:
+            bestOptions = self.__getBestMove(movementOptions)
             randomChoice = random.randint(0, len(bestOptions) - 1)
-            return ("move", bestOptions[randomChoice])
+            return "move", bestOptions[randomChoice]
+
+        # either shooting chosen and no shooting options, or move chosen and no move options
+        return "none", (-1, -1, -1)
 
     def reset(self):
         self.__tanks.clear()
-            
-
-                   

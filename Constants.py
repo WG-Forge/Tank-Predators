@@ -34,9 +34,19 @@ class Action(IntEnum):
 class ShootingModifier(IntEnum):
     """
     Enumerator that contains modifiers in range[-1, 1] for choosing optimal attack target,
-    or to choose whether to attack at all (base value is 0)
     """
     ENOUGH_TO_DESTROY = 0.5
-    NOT_ENOUGH_TURNS = -1
-    NUMBER_OF_TARGETS = 0.25  # bonus modifier if there are multiple targets
-    TANK_ON_CENTRAL_BASE = 1
+    NUMBER_OF_TARGETS = 0.334  # bonus modifier if there are multiple targets(if there is 3 targets bonus is >1)
+    ENEMY_TANK_ON_CENTRAL_BASE = 1
+
+
+class ActionModifier(IntEnum):
+    """
+    Enumerator that contains modifiers to choose whether to attack or move
+    (positive value -> move, negative value -> shoot)
+    """
+    CENTRAL_BASE_IN_MOVEMENT_RANGE = -1
+    HEALING_IN_RANGE_THREAT = -1  # needs healing and there is a threat to destroy tank
+    HEALING_IN_RANGE_NO_THREAT = -0.5  # needs healing but there is no threat to destroy tank
+    DESTROY_THREAT = -0.99  # there is a threat to destroy tank, won't move if tank is at central base
+    ALLY_TANK_ON_CENTRAL_BASE = 1  # our tank is at the central base
