@@ -6,13 +6,14 @@ Pavle Prodanovic <br/>
 Armandas Puidokas <br/>
 
 ## How to start the game:
-Run PlayerSession.py, enter your name and you will join preordered session. You can change session parameters in PlayerSession.login() method.
+Run Play.py where you can choose username, password, to create/join game as player/observer
 Python version recommended: 3.10
 
-## Current version(finished Stage III):
+## Current version(finished Stage IV):
 
 #### Game Logic:
-* Random choice between shooting at random opponent in range and random movement on the map
+* Choice between shooting and moving depending on muliple parameters
+
 
 #### Game map interface:
 * White color tiles are empty
