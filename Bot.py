@@ -1,13 +1,14 @@
 from Map import Map
 from Aliases import positionTuple
 import math
+import random
 
 class Bot:
     settings = {
         "CaptureDistanceMultiplier": 0.95
     }
 
-    def __init__(self, map: Map, pathingOffsets):
+    def __init__(self, map: Map, pathingOffsets, movementSystem, shootingSystem):
         """
         Initializes the bot.
 
@@ -17,7 +18,9 @@ class Bot:
         self.__map = map
         self.__pathingOffsets = pathingOffsets
         self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
-        self.__initializeMap() 
+        self.__initializeMap()
+        self.__movementSystem = movementSystem
+        self.__shootingSystem = shootingSystem
 
     def __initializeMap(self):
         """
@@ -58,7 +61,7 @@ class Bot:
                                 visited.add(offsetPosition)
                                 self.__valueMap[currentPosition] = newValue
 
-    def getBestMove(self, moves: list) -> list[positionTuple]:
+    def __getBestMove(self, moves: list) -> list[positionTuple]:
         maxValue = -math.inf
         maxPositions = []
 
@@ -72,6 +75,18 @@ class Bot:
                 maxPositions.append(move)
 
         return maxPositions
+    
+    def getAction(self, tankId: str):
+        options = self.__shootingSystem.getShootingOptions(tankId)
+        if len(options) > 0:
+            randomChoice = random.randint(0, len(options) - 1)
+            return ("shoot", options[randomChoice][0])
+
+        options = self.__movementSystem.getMovementOptions(tankId)
+        if len(options) > 0:
+            bestOptions = self.__getBestMove(options)
+            randomChoice = random.randint(0, len(bestOptions) - 1)
+            return ("move", bestOptions[randomChoice])
 
 
             
