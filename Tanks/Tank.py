@@ -9,11 +9,13 @@ from Aliases import positionTuple
 from Aliases import jsonDict
 from Utils import HexToTuple
 
+
 class Tank(ABC):
     """
     Abstract base class for all tank entities in the game.
     """
     __slots__ = ("__components",)
+
     def __init__(self, tankData: jsonDict, settings: jsonDict) -> None:
         """
         Initializes a new instance of the Tank class.
@@ -46,7 +48,7 @@ class Tank(ABC):
         :param speed: An integer representing the speed of the tank.
         """
         self._setComponent("position", PositionComponent(spawnPosition, position, speed))
-        
+
     def _initializeOwner(self, ownerId: int) -> None:
         """
         Initializes the owner component for the tank.
@@ -90,8 +92,9 @@ class Tank(ABC):
             - "damage": An integer representing the damage dealt by the tank's attacks.
         :param rangeBonusEnabled: Indicates whether the attack range bonus is enabled or not.
         """
-        self._setComponent("shooting", CurvedShootingComponent(settings["minAttackRange"], settings["maxAttackRange"], settings["damage"], shootingRangeBonus))
-    
+        self._setComponent("shooting", CurvedShootingComponent(settings["minAttackRange"], settings["maxAttackRange"],
+                                                               settings["damage"], shootingRangeBonus))
+
     def getComponent(self, componentName: str) -> object:
         """
         Returns the component instance with the given name.
@@ -100,7 +103,7 @@ class Tank(ABC):
         :return: The component instance with the given name.
         """
         return self.__components.get(componentName)
-    
+
     def hasComponent(self, componentName: str) -> bool:
         """
         Returns True if the tank has a component with the given name, False otherwise.
@@ -109,7 +112,7 @@ class Tank(ABC):
         :return: True if the tank has a component with the given name, False otherwise.
         """
         return componentName in self.__components
-    
+
     def _setComponent(self, componentName: str, componentInstance: object) -> None:
         """
         Sets the component instance with the given name to the provided instance.

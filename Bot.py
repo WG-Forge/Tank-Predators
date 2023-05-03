@@ -2,7 +2,7 @@ from Map import Map
 from Aliases import positionTuple, shootingOptionsList
 import math
 import random
-from Constants import ShootingModifier
+from Constants import ActionModifier
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
@@ -29,7 +29,6 @@ class Bot:
         self.__tanks = {}
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
-
 
     def __initializeMap(self):
         """
@@ -94,7 +93,7 @@ class Bot:
 
         return maxPositions
 
-    def __getTileTypesInRange(self, movementOptions: list[positionTuple]) -> list[str]:
+    def __getTileTypesInRange(self, movementOptions: list[positionTuple]) -> set:
         """
         Returns list of all tile types in movement range
         """
@@ -102,9 +101,25 @@ class Bot:
         for position in movementOptions:
             tileTypes.add(self.__map.objectAt(position))
 
-        return list(tileTypes)
+        return tileTypes
 
-    def __getBestTarget(self, tankID: str, shootingOptions) -> tuple[positionTuple, int]:
+    def __getBestAction(self, tankID: str, shootingOptions, movementOptions) -> tuple[positionTuple, str]:
+        allyTank = self.__tanks[tankID]
+        allTileTypes = self.__getTileTypesInRange(movementOptions)
+
+        bestTargetPosition, modifier = self.__getBestTarget(allyTank, shootingOptions)
+
+        # checking if we are already on the central base
+        if self.__map.objectAt(allyTank.getComponent("position").position):
+            modifier += ActionModifier.ALLY_TANK_ON_CENTRAL_BASE.value
+        # checking if we can move to central base if we are not already there
+        elif "Base" in allTileTypes:
+            modifier += ActionModifier.CENTRAL_BASE_IN_MOVEMENT_RANGE.value
+
+        action = "shoot" if modifier > 0 else "move"
+        return bestTargetPosition, action
+
+    def __getBestTarget(self, allyTank: Tank, shootingOptions) -> tuple[positionTuple, float]:
         """
         Determines best possible target to shoot, depending on current game state.
         The bigger the final modifier values is, the greater is the benefit of shooting at the target
@@ -112,32 +127,28 @@ class Bot:
 
         :param: tankID of tank that shoots
         :param: shootingOptions shootingOptionsList of all possible targets
-        :param: movementOptions list[positionTuple] of all possible moves
         :return: tuple of positionTuple(tile at which we should fire) and int final modifier value
         """
         numOptions = len(shootingOptions)
-        allyTank = self.__tanks[tankID]
-        if numOptions == 0:
-            return (-1, -1, -1), -1  # -1 because there are no possible options
 
         modifiers = [0 for _ in range(numOptions)]
         for i in range(numOptions):
             numberOfTargets = len(shootingOptions[i][1])
-            # number of targets we will shoot
-            modifiers[i] += ShootingModifier.NUMBER_OF_TARGETS * numberOfTargets
-            targetsDamage = 0
+            totalTargetsDamage = 0  # total Damage that targets can give us
+            modifiers[i] += ActionModifier.NUMBER_OF_TARGETS.value * numberOfTargets
             for j in range(numberOfTargets):
                 targetTank = self.__tanks[shootingOptions[i][1][j]]
-                targetsDamage += targetTank.getComponent("shooting").damage
                 # target is at central base
                 if self.__map.objectAt(shootingOptions[i][0]) == "Base":
-                    modifiers[i] += ShootingModifier.TANK_ON_CENTRAL_BASE
+                    modifiers[i] += ActionModifier.ALLY_TANK_ON_CENTRAL_BASE.value
                 # checking target health
                 targetHealth = targetTank.getComponent("health").currentHealth
+                totalTargetsDamage += targetTank.getComponent("shooting").damage
                 allyDamage = allyTank.getComponent("shooting").damage
                 if allyDamage >= targetHealth:
-                    modifiers[i] += ShootingModifier.ENOUGH_TO_DESTROY
+                    modifiers[i] += ActionModifier.ENOUGH_TO_DESTROY.value
 
+        # finding max modifier value
         maxModifier = modifiers[0]
         maxTuple = shootingOptions[0][0]
         for i in range(1, numOptions):
@@ -147,16 +158,35 @@ class Bot:
 
         return maxTuple, maxModifier
 
-    def __chooseAction(self, tankId: str):
-        pass
+    def __healingModifier(self, allyTank, allTileTypes, totalTargetsDamage) -> float:
+        allyHealth = allyTank.getComponent("health").currentHealth
+        healingPossible = self.__isHealingPossible(allyTank, allTileTypes)
+        if allyHealth <= totalTargetsDamage:
+            if healingPossible:
+                return ActionModifier.HEALING_IN_RANGE_DESTROY_THREAT.value
+            else:
+                return ActionModifier.DESTROY_THREAT.value
+        else:
+            if healingPossible:
+                return ActionModifier.HEALING_IN_RANGE_NO_THREAT.value
+
+    @staticmethod
+    def __isHealingPossible(allyTank: Tank, allTileTypes: set[str]) -> bool:
+        """
+        :param: allyTank Tank object
+        :param: allTileTypes tile types that are reachable
+        :return: true if healing is possible in one move, false otherwise
+        """
+        return (type(allyTank).__name__ == "MEDIUM_TANK" and "LightRepair" in allTileTypes) \
+               or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
 
     def getAction(self, tankId: str) -> tuple[str, positionTuple]:
         shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
         movementOptions = self.__movementSystem.getMovementOptions(tankId)
         if len(shootingOptions) > 0:
-            maxTuple, maxModifier = self.__getBestTarget(tankId, shootingOptions, movementOptions)
-            if maxModifier > 0:
-                return "shoot", maxTuple
+            bestShootingTarget, actionType = self.__getBestAction(tankId, shootingOptions, movementOptions)
+            if actionType == "shoot":
+                return "shoot", bestShootingTarget
         if len(movementOptions) > 0:
             bestOptions = self.__getBestMove(movementOptions)
             randomChoice = random.randint(0, len(bestOptions) - 1)

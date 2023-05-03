@@ -9,7 +9,7 @@ if __name__ == "__main__":
     password = ""
     with PlayerSession(username, password) as session:
         data = {}
-        data["game"] = "Test382"
+        data["game"] = "Test38422"
         data["num_turns"] = 90
         data["num_players"] = 2
         game = Game(session, data)

@@ -7,10 +7,12 @@ from Tanks.Tank import Tank
 from Aliases import jsonDict
 from Utils import HexToTuple
 
+
 class TankFactory:
     """
     A class that manages the creation of tanks.
     """
+
     def __init__(self) -> None:
         """
         Initializes the TankFactory.
@@ -31,5 +33,5 @@ class TankFactory:
         :return: The newly created Tank object.
         """
         tankType = tankData["vehicle_type"]
-        
+
         return self.__tankTypeMapping[tankType](tankData)
