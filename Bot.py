@@ -3,13 +3,16 @@ from Aliases import positionTuple, shootingOptionsList
 import math
 import random
 from Constants import ShootingModifier
+from Events.Events import TankAddedEvent
+from Tanks.Tank import Tank
+from Events.EventManager import EventManager
 
 class Bot:
     settings = {
         "CaptureDistanceMultiplier": 0.95
     }
 
-    def __init__(self, map: Map, pathingOffsets, movementSystem, shootingSystem):
+    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem):
         """
         Initializes the bot.
 
@@ -22,6 +25,9 @@ class Bot:
         self.__initializeMap()
         self.__movementSystem = movementSystem
         self.__shootingSystem = shootingSystem
+        self.__tanks = {}
+        self.__eventManager = eventManager
+        self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
 
     def __initializeMap(self):
         """
@@ -33,6 +39,15 @@ class Bot:
         for position, obj in self.__map:
             if obj == "Base":
                 self.__pathFromBase(position)
+
+    def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
+        """
+        Event handler. Adds the tank to the system if it has shooting, owner and position components
+
+        :param tankId: The ID of the added tank.
+        :param tankEntity: The Tank entity that was added.
+        """
+        self.__tanks[tankId] = tankEntity
 
     def __pathFromBase(self, basePosition: positionTuple):
         # Gets the tanks maximum movement distance
@@ -131,7 +146,8 @@ class Bot:
             randomChoice = random.randint(0, len(bestOptions) - 1)
             return ("move", bestOptions[randomChoice])
 
-
+    def reset(self):
+        self.__tanks.clear()
             
 
                    
