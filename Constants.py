@@ -41,6 +41,6 @@ class ActionModifier(IntEnum):
     HEALING_IN_RANGE_NO_THREAT = -0.5  # needs healing but there is no threat to destroy tank
     DESTROY_THREAT = -0.99  # there is a threat to destroy tank, won't move if tank is at central base
     ALLY_TANK_ON_CENTRAL_BASE = 1  # our tank is at the central base
-    ENOUGH_TO_DESTROY = 0.5  # we can destroy enemy tank
+    ENOUGH_TO_DESTROY = 1  # we can destroy enemy tank
     NUMBER_OF_TARGETS = 0.334  # bonus modifier if there are multiple targets(if there is 3 targets bonus is >1)
-    ENEMY_TANK_ON_CENTRAL_BASE = 1
+    ENEMY_TANK_ON_CENTRAL_BASE = 0.7

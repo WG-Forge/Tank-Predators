@@ -119,6 +119,22 @@ class Bot:
         action = "shoot" if modifier > 0 else "move"
         return bestTargetPosition, action
 
+    def __getAllShootableTanks(self, playerTanks: list[str]) -> dict[str, list[tuple[str, positionTuple]]]:
+        """
+        :return: key: enemy tank, value: list of tuple of tanks id's that can hit it and position that they shoot at
+        """
+        shootableTanks = {}
+        for tankId in playerTanks:
+            shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
+            numOptions = len(shootingOptions)
+            for i in range(numOptions):
+                for enemyId in shootingOptions[i][1]:
+                    if enemyId not in shootableTanks:
+                        shootableTanks[enemyId] = []
+                    shootableTanks[enemyId].append((tankId, shootingOptions[i][0]))
+
+        return shootableTanks
+
     def __getBestTarget(self, allyTank: Tank, shootingOptions) -> tuple[positionTuple, float]:
         """
         Determines best possible target to shoot, depending on current game state.
@@ -134,19 +150,20 @@ class Bot:
         modifiers = [0 for _ in range(numOptions)]
         for i in range(numOptions):
             numberOfTargets = len(shootingOptions[i][1])
-            totalTargetsDamage = 0  # total Damage that targets can give us
             modifiers[i] += ActionModifier.NUMBER_OF_TARGETS.value * numberOfTargets
             for j in range(numberOfTargets):
                 targetTank = self.__tanks[shootingOptions[i][1][j]]
                 # target is at central base
-                if self.__map.objectAt(shootingOptions[i][0]) == "Base":
-                    modifiers[i] += ActionModifier.ALLY_TANK_ON_CENTRAL_BASE.value
+                if self.__map.objectAt(targetTank.getComponent("position").position) == "Base":
+                    modifiers[i] += ActionModifier.ENEMY_TANK_ON_CENTRAL_BASE.value
+                    pass
+
                 # checking target health
                 targetHealth = targetTank.getComponent("health").currentHealth
-                totalTargetsDamage += targetTank.getComponent("shooting").damage
                 allyDamage = allyTank.getComponent("shooting").damage
                 if allyDamage >= targetHealth:
                     modifiers[i] += ActionModifier.ENOUGH_TO_DESTROY.value
+                    pass
 
         # finding max modifier value
         maxModifier = modifiers[0]
@@ -185,8 +202,11 @@ class Bot:
         movementOptions = self.__movementSystem.getMovementOptions(tankId)
         if len(shootingOptions) > 0:
             bestShootingTarget, actionType = self.__getBestAction(tankId, shootingOptions, movementOptions)
-            if actionType == "shoot":
-                return "shoot", bestShootingTarget
+            # if actionType == "shoot":
+            # print(bestShootingTarget)
+            # randomChoice = random.randint(0, len(shootingOptions) - 1)
+            # return "shoot", shootingOptions[randomChoice][0]
+            return "shoot", bestShootingTarget
         if len(movementOptions) > 0:
             bestOptions = self.__getBestMove(movementOptions)
             randomChoice = random.randint(0, len(bestOptions) - 1)

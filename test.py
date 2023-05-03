@@ -6,7 +6,6 @@ from threading import Thread
 from Play import Game
 from PlayerSession import PlayerSession
 
-
 def runOneWithUserName():
     logging.basicConfig(level=logging.DEBUG)
     username = input()
@@ -30,12 +29,13 @@ def __threadBody(data, i):
         game.quitDisplay()
         if game.isWinner():
             winners.append(i)
+            pass
 
 
-def runAutomatically(numPlayers: int, numTurns: int):
+def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
     letters = string.ascii_letters
     randomGameName = ''.join(random.choice(letters) for _ in range(10))  # name
-    data = {"game": randomGameName, "num_turns": numTurns, "num_players": numPlayers}
+    data = {"game": "partija" + str(iteration), "num_turns": numTurns, "num_players": 3}
     threads = []
 
     for i in range(numPlayers):
@@ -50,11 +50,13 @@ def runAutomatically(numPlayers: int, numTurns: int):
 if __name__ == "__main__":
     winners = []
     winByPlayer = [0, 0, 0]
-    numGames = 10
+    numGames = 5
     for i in range(numGames):
-        runAutomatically(3, 99)
+        runAutomatically(1, 99, i)
     for winner in winners:
         winByPlayer[winner] += 1
 
     print(winByPlayer)
+
+
 
