@@ -20,6 +20,8 @@ import logging
 from Aliases import jsonDict
 from Utils import PathingOffsets
 from Bot import Bot
+import time
+from World import World
 
 class Game():
     def __init__(self, session: PlayerSession, data: jsonDict) -> None:
@@ -27,31 +29,13 @@ class Game():
         self.__playerID = self.__session.login(data)
 
         # Get static map data
-        mapInfo = self.__session.getMapInfo()
-        self.__map = Map(mapInfo)
-        self.__pathingOffsets = PathingOffsets(self.__map.getSize())
-        self.__bot = Bot(self.__map, self.__pathingOffsets)
-        self.__initializeWorld()
+        self.__map = self.__session.getMapInfo()
+        self.__gameState = self.__session.getGameState()
+        self.__world = World(self.__map, self.__gameState)
+        self.__bot = self.__world.getBot()
+        self.__initializeTurnOrder()
         self.__play()
         self.__session.logout()
-
-    def __initializeEventManager(self):
-        # init event manager and all events
-        self.__eventManager = EventManager()
-        allEvents = inspect.getmembers(AllEvents, inspect.isclass)
-
-        for _, cls in allEvents:
-            self.__eventManager.registerEvent(cls)
-
-    def __initializeSystems(self):
-        self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager, self.__pathingOffsets)
-        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__pathingOffsets, self.__gameState["attack_matrix"], self.__gameState["catapult_usage"])
-        self.__healthSystem = TankHealthSystem(self.__eventManager)
-        self.__respawnSystem = TankRespawnSystem(self.__eventManager)
-        self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
-        
-    def __initializeDisplay(self):
-        self.__displaySystem = DisplaySystem(self.__map, self.__eventManager)
 
     def __initializeTurnOrder(self):
         turnOrder = ["spg", "light_tank", "heavy_tank", "medium_tank", "at_spg"]
@@ -61,56 +45,22 @@ class Game():
             if tankData["player_id"] == self.__playerID:
                 self.__playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
-    def __initializeWorld(self):
-        self.__gameState = self.__session.getGameState()
-        self.__initializeEventManager()
-        self.__tankManager = TankManager(self.__eventManager)
-        self.__initializeSystems()
-        self.__initializeDisplay()
-        self.__initializeTurnOrder()
-
-    def __resetWorld(self):
-        self.__previousPlayer = "Unknown"
-        self.__gameState = self.__session.getGameState()
-        self.__initializeEventManager()
-        self.__tankManager = TankManager(self.__eventManager)
-        self.__initializeSystems()
-        self.__displaySystem.reset(self.__eventManager)
-        self.__initializeTurnOrder()
-
-    def __addMissingTanks(self):
-        for tankId, tankData in self.__gameState["vehicles"].items():
-            tankId = str(tankId)
-            if not self.__tankManager.hasTank(tankId):
-                self.__tankManager.addTank(tankId, tankData)
-
-    def __turn(self, currentPlayer: int):
-        self.__respawnSystem.turn()
-        self.__positionBonusSystem.turn()
-        self.__displaySystem.turn()
-        self.__shootingSystem.turn(currentPlayer)
-
     def __selfTurn(self):
         for tankId in self.__playerTanks:
             # perform local player actions
             try:
-                options = self.__shootingSystem.getShootingOptions(tankId)
-                if len(options) > 0:
-                    randomChoice = random.randint(0, len(options) - 1)
-                    self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice][0])})
-                    self.__shootingSystem.shoot(tankId, options[randomChoice][0])
-                    continue
-
-                options = self.__movementSystem.getMovementOptions(tankId)
-                if len(options) > 0:
-                    bestOptions = self.__bot.getBestMove(options)
-                    randomChoice = random.randint(0, len(bestOptions) - 1)
-                    self.__session.move({"vehicle_id": int(tankId), "target": TupleToHex(bestOptions[randomChoice])})
-                    self.__movementSystem.move(tankId, bestOptions[randomChoice])
+                print(tankId)
+                time.sleep(1)
+                action, targetPosition = self.__bot.getAction(tankId)
+                if action == "shoot":
+                    self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
+                    self.__world.shoot(tankId, targetPosition)
+                elif action == "move":
+                    self.__session.move({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
+                    self.__world.move(tankId, targetPosition)
             except BadCommandException as exception:
                 logging.debug(f"BadCommandException:{exception.message}")
                 if exception.message != "You have already used this vehicle!":
-                    self.__resetWorld()
                     return
 
         self.__session.nextTurn() 
@@ -118,8 +68,6 @@ class Game():
     def __otherTurn(self):
         # skip turn since it's not our
         self.__session.nextTurn()
-        # add missing tanks
-        self.__addMissingTanks()
         # perform other player actions
         gameActions = self.__session.getGameActions()
 
@@ -128,21 +76,22 @@ class Game():
                 break
             if action["action_type"] == Action.MOVE:
                 actionData = action["data"]
-                self.__movementSystem.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                self.__world.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
             elif action["action_type"] == Action.SHOOT:
                 actionData = action["data"]
-                self.__shootingSystem.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                self.__world.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
 
     def __play(self):
         self.__previousPlayer = "Unknown"
 
         while not self.__gameState["finished"]:
             try:
-                self.__addMissingTanks()
                 currentPlayer = self.__gameState["current_player_idx"]
                 if currentPlayer and currentPlayer != self.__previousPlayer:
                     self.__previousPlayer = currentPlayer
-                    self.__turn(currentPlayer)
+                    self.__gameState = self.__session.getGameState()
+                    self.__world.addMissingTanks(self.__gameState)
+                    self.__world.turn(currentPlayer)
 
                     if currentPlayer == self.__playerID:  # our turn
                         self.__selfTurn()
@@ -150,17 +99,17 @@ class Game():
                         self.__otherTurn()
                 else:
                     self.__session.nextTurn()
-                self.__gameState = self.__session.getGameState()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
                 self.__gameState = self.__session.getGameState()
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
                 logging.debug(f"{exception.__class__.__name__}:{exception.message}")
-                self.__resetWorld()
+                self.__gameState = self.__session.getGameState()
+                self.__world.resetSystems(self.__gameState)
             
 
     def quitDisplay(self):
-        self.__displaySystem.stop()
+        self.__world.quit()
 
     def isWinner(self) -> bool:
         return self.__playerID == self.__gameState["winner"]
