@@ -1,7 +1,8 @@
 from Map import Map
-from Aliases import positionTuple
+from Aliases import positionTuple, shootingOptionsList
 import math
 import random
+from Constants import ShootingModifier
 
 class Bot:
     settings = {
@@ -76,11 +77,53 @@ class Bot:
 
         return maxPositions
     
+    def __getBestTarget(self, tankID: str, shootingOptions: shootingOptionsList) -> tuple[positionTuple, int]:
+        """
+        Determines best possible target to shoot, depending on current game state.
+        The bigger the final modifier values is, the greater is the benefit of shooting at the target
+        Target with modifiers below zero should not be considered for shooting
+
+        :param: tankID of tank that shoots
+        :param: shootingOptions shootingOptionsList of all possible targets
+        :return: tuple of positionTuple(tile at which we should fire) and int final modifier value
+        """
+        numOptions = len(shootingOptions)
+        allyTank = self.__tankManager.getTank(tankID)
+        if numOptions == 0:
+            return (-1, -1, -1), -1  # -1 because there are no possible options
+
+        modifiers = [0 for _ in range(numOptions)]
+        for i in range(numOptions):
+            numberOfTargets = len(shootingOptions[i][1])
+            # number of targets we will shoot
+            modifiers[i] += ShootingModifier.NUMBER_OF_TARGETS * numberOfTargets
+            # turns left
+            for j in range(numberOfTargets):
+                targetTank = self.__tankManager.getTank(shootingOptions[i][1][j])
+                # target is at central base
+                if self.__map.objectAt(shootingOptions[i][0]) == "Base":
+                    modifiers[i] += ShootingModifier.TANK_ON_CENTRAL_BASE
+                # checking target health
+                targetHealth = targetTank.getComponent("health").currentHealth
+                allyDamage = allyTank.getComponent("shooting").damage
+                if allyDamage >= targetHealth:
+                    modifiers[i] += ShootingModifier.ENOUGH_TO_DESTROY
+
+        maxModifier = modifiers[0]
+        maxTuple = shootingOptions[0][0]
+        for i in range(1, numOptions):
+            if modifiers[i] > maxModifier:
+                maxModifier = modifiers[i]
+                maxTuple = shootingOptions[i][0]
+
+        return maxTuple, maxModifier
+      
     def getAction(self, tankId: str):
         options = self.__shootingSystem.getShootingOptions(tankId)
         if len(options) > 0:
-            randomChoice = random.randint(0, len(options) - 1)
-            return ("shoot", options[randomChoice][0])
+            maxTuple, maxModifier = self.__getBestTarget(tankId, options)
+            if maxModifier != -1:
+                return ("shoot", maxTuple)
 
         options = self.__movementSystem.getMovementOptions(tankId)
         if len(options) > 0:

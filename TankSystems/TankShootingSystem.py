@@ -6,7 +6,6 @@ from Events.Events import TankRespawnedEvent
 from Events.Events import TankRangeBonusEvent
 from Events.EventManager import EventManager
 from Tanks.Tank import Tank
-from TankManagement.TankManager import TankManager
 from Map import Map
 from Tanks.Components.DirectShootingComponent import DirectShootingComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
@@ -14,9 +13,7 @@ from Tanks.Components.HealthComponent import HealthComponent
 from Aliases import positionTuple, jsonDict, shootingOptionsList
 import itertools
 from Utils import HexToTuple
-from Constants import ShootingModifier
 import logging
-
 
 class TankShootingSystem:
     """
@@ -25,7 +22,7 @@ class TankShootingSystem:
 
     def __init__(self, map: Map, eventManager: EventManager,
                  pathingOffsets: list[dict[tuple[int, int, int], set[tuple[int, int, int]]]], attackMatrix: jsonDict,
-                 catapultUsage: list, tankManager: TankManager):
+                 catapultUsage: list):
         """
         Initializes the TankShootingSystem.
 
@@ -42,7 +39,6 @@ class TankShootingSystem:
         self.__eventManager.addHandler(TankRangeBonusEvent, self.onRangeBonusReceived)
         self.__tanks = {}
         self.__tankMap = {}
-        self.__tankManager = tankManager
         self.__canShootTrough = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__initializeAttackMatrix(attackMatrix)
@@ -401,44 +397,3 @@ class TankShootingSystem:
         self.__initializeCatapultUsage(catapultUsage)
         self.__tankMap.clear()
         self.__tanks.clear()
-
-    def getBestTarget(self, tankID: str, shootingOptions: shootingOptionsList) -> tuple[positionTuple, int]:
-        """
-        Determines best possible target to shoot, depending on current game state.
-        The bigger the final modifier values is, the greater is the benefit of shooting at the target
-        Target with modifiers below zero should not be considered for shooting
-
-        :param: tankID of tank that shoots
-        :param: shootingOptions shootingOptionsList of all possible targets
-        :return: tuple of positionTuple(tile at which we should fire) and int final modifier value
-        """
-        numOptions = len(shootingOptions)
-        allyTank = self.__tankManager.getTank(tankID)
-        if numOptions == 0:
-            return (-1, -1, -1), -1  # -1 because there are no possible options
-
-        modifiers = [0 for _ in range(numOptions)]
-        for i in range(numOptions):
-            numberOfTargets = len(shootingOptions[i][1])
-            # number of targets we will shoot
-            modifiers[i] += ShootingModifier.NUMBER_OF_TARGETS * numberOfTargets
-            # turns left
-            for j in range(numberOfTargets):
-                targetTank = self.__tankManager.getTank(shootingOptions[i][1][j])
-                # target is at central base
-                if self.__map.objectAt(shootingOptions[i][0]) == "Base":
-                    modifiers[i] += ShootingModifier.TANK_ON_CENTRAL_BASE
-                # checking target health
-                targetHealth = targetTank.getComponent("health").currentHealth
-                allyDamage = allyTank.getComponent("shooting").damage
-                if allyDamage >= targetHealth:
-                    modifiers[i] += ShootingModifier.ENOUGH_TO_DESTROY
-
-        maxModifier = modifiers[0]
-        maxTuple = shootingOptions[0][0]
-        for i in range(1, numOptions):
-            if modifiers[i] > maxModifier:
-                maxModifier = modifiers[i]
-                maxTuple = shootingOptions[i][0]
-
-        return maxTuple, maxModifier
