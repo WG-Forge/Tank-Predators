@@ -78,3 +78,5 @@ class TankHealthSystem:
             logging.debug(f"Repair used: TankId:{tankId}")
             self.__heal(healthComponent)
 
+    def reset(self):
+        self.__tanks.clear()

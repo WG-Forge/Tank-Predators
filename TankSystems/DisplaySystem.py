@@ -45,7 +45,7 @@ class Display:
         while True:
             try:
                 messageType, args = self.__messageQueue.get(block=False)
-            
+
                 if messageType == "update":
                     for update in args[0]:
                         self.__emptyCell(*update)
@@ -60,7 +60,7 @@ class Display:
 
             self.__window.update_idletasks()
             self.__window.update()
-            time.sleep(0.1)
+            time.sleep(0.05)
        
     def __setCell(self, position: tuple, fillColor: str) -> None:
         '''
@@ -142,17 +142,17 @@ class DisplaySystem:
         self.__turnQueue[0].clear()
         self.__turnQueue[1].clear()
 
-    def stop(self) -> None:
+    def quit(self) -> None:
         self.__messageQueue.put(("stop", []))
         self.__displayThread.join()
 
-    def reset(self, eventManager: EventManager) -> None:
-        self.__eventManager = eventManager
-        self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
-
+    def reset(self) -> None:
         for tankData in self.__tanks.values():
             self.__turnQueue[0].append((tankData["position"],))
 
+        self.__messageQueue.put(("update", copy.deepcopy(self.__turnQueue)))
+        self.__turnQueue[0].clear()
+        self.__turnQueue[1].clear()
         self.__tanks.clear()
 
             

@@ -31,3 +31,6 @@ class TankRespawnSystem:
             self.__eventManager.triggerEvent(TankRespawnedEvent, tankId)
         
         self.__destroyedTankIds.clear()
+
+    def reset(self):
+        self.__destroyedTankIds.clear()

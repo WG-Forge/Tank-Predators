@@ -116,3 +116,8 @@ class TankMovementSystem:
 
         if positionComponent:
             self.move(tankId, positionComponent.spawnPosition)
+
+    def reset(self):
+        self.__tankPositions = {}
+        self.__tankMap = {}
+        self.__spawnPoints = {}

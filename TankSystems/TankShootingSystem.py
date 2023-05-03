@@ -37,27 +37,27 @@ class TankShootingSystem:
         self.__tankMap = {}
         self.__canShootTrough = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
-        self.__attackMatrix = {int(key) : values for key, values in attackMatrix.items()}
-        self.__catapultUsage = self.__calculateCatapultUsage(catapultUsage)
+        self.__initializeAttackMatrix(attackMatrix)
+        self.__initializeCatapultUsage(catapultUsage)
         self.__pathingOffsets = pathingOffsets
 
-    def __calculateCatapultUsage(self, catapultUsage: list) -> dict:
+    def __initializeAttackMatrix(self, attackMatrix: jsonDict):
+        self.__attackMatrix = {int(key) : values for key, values in attackMatrix.items()}
+
+    def __initializeCatapultUsage(self, catapultUsage: list) -> dict:
         """
-        Calculates the usage of each catapult position based on the provided list.
+        Initializes the usage of each catapult position based on the provided list.
 
         :param catapultUsage: A history of catapult usage. Catapults can be used a limited number of times.
-        :return: A dictionary where the keys are hex positions and the values are the number of times the catapult at that position was used.
         """
-        usage = {}
+        self.__catapultUsage = {}
 
         for hex in catapultUsage:
             position = HexToTuple(hex)
-            if position not in usage:
-                usage[position] = 1
+            if position not in self.__catapultUsage:
+                self.__catapultUsage[position] = 1
             else:
-                usage[position] += 1
-
-        return usage
+                self.__catapultUsage[position] += 1
 
     def onRangeBonusReceived(self, tankId: str):
         tank = self.__tanks.get(tankId)
@@ -318,9 +318,6 @@ class TankShootingSystem:
             if shootingComponent.rangeBonusEnabled:
                 self.__removeBonusRange(shootingComponent)
 
-    def turn(self, ownerId):
-        self.__attackMatrix[ownerId].clear()
-
     def getShootablePositions(self, tankId: str) -> set[positionTuple]:
         """
         Returns a set of shootable positions for the specified tank.
@@ -381,3 +378,12 @@ class TankShootingSystem:
                     break
 
         return shootingOptions
+    
+    def turn(self, ownerId):
+        self.__attackMatrix[ownerId].clear()
+
+    def reset(self, attackMatrix: jsonDict, catapultUsage: list):
+        self.__initializeAttackMatrix(attackMatrix)
+        self.__initializeCatapultUsage(catapultUsage)
+        self.__tankMap.clear()
+        self.__tanks.clear()

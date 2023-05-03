@@ -51,3 +51,6 @@ class PositionBonusSystem:
                 self.__eventManager.triggerEvent(TankRepairedEvent, tankId)
             elif obj == "Catapult":
                  self.__eventManager.triggerEvent(TankRangeBonusEvent, tankId)
+
+    def reset(self):
+        self.__tanks = {}
