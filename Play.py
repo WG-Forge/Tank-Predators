@@ -49,7 +49,7 @@ class Game:
         self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager, self.__pathingOffsets)
         self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__pathingOffsets,
                                                    self.__gameState["attack_matrix"],
-                                                   self.__gameState["catapult_usage"])
+                                                   self.__gameState["catapult_usage"], self.__tankManager)
         self.__healthSystem = TankHealthSystem(self.__eventManager)
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
@@ -100,9 +100,11 @@ class Game:
             try:
                 options = self.__shootingSystem.getShootingOptions(tankId)
                 if len(options) > 0:
-                    randomChoice = random.randint(0, len(options) - 1)
-                    self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(options[randomChoice][0])})
-                    self.__shootingSystem.shoot(tankId, options[randomChoice][0])
+                    # randomChoice = random.randint(0, len(options) - 1)
+                    shootingChoice, modifier = self.__shootingSystem.getBestTarget(tankId, options)
+                    print(shootingChoice, modifier)
+                    self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(shootingChoice)})
+                    self.__shootingSystem.shoot(tankId, shootingChoice)
                     continue
 
                 options = self.__movementSystem.getMovementOptions(tankId)
