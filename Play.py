@@ -84,16 +84,13 @@ class Game:
     def __play(self):
         self.__previousPlayer = "Unknown"
 
-        while True:
+        while not self.__gameState["finished"]:
             try:
                 currentPlayer = self.__gameState["current_player_idx"]
                 if currentPlayer and currentPlayer != self.__previousPlayer:
                     self.__previousPlayer = currentPlayer
-                    self.__gameState = self.__session.getGameState()
                     self.__world.addMissingTanks(self.__gameState)
                     self.__world.turn(currentPlayer)
-                    if self.__gameState["finished"]:
-                        break
 
                     if currentPlayer == self.__playerID:  # our turn
                         self.__selfTurn()
@@ -101,6 +98,8 @@ class Game:
                         self.__otherTurn()
                 else:
                     self.__session.nextTurn()
+
+                self.__gameState = self.__session.getGameState()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
                 self.__gameState = self.__session.getGameState()
