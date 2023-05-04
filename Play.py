@@ -1,16 +1,3 @@
-from Map import Map
-from Events.EventManager import EventManager
-import Tanks.Settings as TankSettings
-from TankManagement.TankManager import TankManager
-from TankSystems.TankMovementSystem import TankMovementSystem
-from TankSystems.TankShootingSystem import TankShootingSystem
-from TankSystems.TankHealthSystem import TankHealthSystem
-from TankSystems.DisplaySystem import DisplaySystem
-from TankSystems.TankRespawnSystem import TankRespawnSystem
-from TankSystems.PositionBonusSystem import PositionBonusSystem
-import random
-import inspect
-import Events.Events as AllEvents
 from Exceptions import BadCommandException, AccessDeniedException, InappropriateGameStateException, TimeoutException, \
     InternalServerErrorException
 from PlayerSession import PlayerSession
@@ -21,7 +8,6 @@ import logging
 from Aliases import jsonDict
 from Utils import PathingOffsets
 from Bot import Bot
-import time
 from World import World
 
 
@@ -36,6 +22,9 @@ class Game:
         self.__world = World(self.__map, self.__gameState)
         self.__bot = self.__world.getBot()
         self.__initializeTurnOrder()
+        self.__previousPlayer = "Unknown"
+        self.__currentPlayer = self.__gameState["current_player_idx"]
+        self.__turn()
         self.__play()
         self.__session.logout()
 
@@ -82,18 +71,21 @@ class Game:
                 actionData = action["data"]
                 self.__world.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
 
-    def __play(self):
-        self.__previousPlayer = "Unknown"
+    def __turn(self) -> None:
+        self.__world.addMissingTanks(self.__gameState)
+        self.__world.turn(self.__currentPlayer)
 
+    def __round(self) -> None:
+        if self.__gameState["current_turn"] % self.__gameState["num_players"] == 0:
+            self.__world.round()
+
+    def __play(self):
         while not self.__gameState["finished"]:
             try:
-                currentPlayer = self.__gameState["current_player_idx"]
-                if currentPlayer and currentPlayer != self.__previousPlayer:
-                    self.__previousPlayer = currentPlayer
-                    self.__world.addMissingTanks(self.__gameState)
-                    self.__world.turn(currentPlayer)
+                if self.__currentPlayer and self.__currentPlayer != self.__previousPlayer:
+                    self.__previousPlayer = self.__currentPlayer
 
-                    if currentPlayer == self.__playerID:  # our turn
+                    if self.__currentPlayer == self.__playerID:  # our turn
                         self.__selfTurn()
                     else:
                         self.__otherTurn()
@@ -101,6 +93,9 @@ class Game:
                     self.__session.nextTurn()
 
                 self.__gameState = self.__session.getGameState()
+                self.__currentPlayer = self.__gameState["current_player_idx"]
+                self.__turn()
+                self.__round()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
                 self.__gameState = self.__session.getGameState()
@@ -186,7 +181,7 @@ def play():
                     else:
                         print("Game ended!")
                 except AccessDeniedException as exception:
-                    print(f"AccessDeniedException:{exception.message}")
+                    print(f"Access denied: {exception.message}")
                     break
 
                 print("Play again? (Y/Any): ", end="")

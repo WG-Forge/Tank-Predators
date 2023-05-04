@@ -7,6 +7,7 @@ from TankSystems.TankHealthSystem import TankHealthSystem
 from TankSystems.DisplaySystem import DisplaySystem
 from TankSystems.TankRespawnSystem import TankRespawnSystem
 from TankSystems.PositionBonusSystem import PositionBonusSystem
+from TankSystems.BaseCaptureSystem import BaseCaptureSystem
 import inspect
 import Events.Events as AllEvents
 from Aliases import jsonDict, positionTuple
@@ -51,6 +52,7 @@ class World():
         self.__healthSystem = TankHealthSystem(self.__eventManager)
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
+        self.__baseCaptureSystem = BaseCaptureSystem(self.__map, self.__eventManager)
 
     def resetSystems(self, gameState: jsonDict) -> None:
         """
@@ -65,6 +67,7 @@ class World():
         self.__healthSystem.reset()
         self.__respawnSystem.reset()
         self.__positionBonusSystem.reset()
+        self.__baseCaptureSystem.reset()
         self.__bot.reset()
 
     def addMissingTanks(self, gameState: jsonDict) -> None:
@@ -108,12 +111,21 @@ class World():
         """
         Performs the turn logic for the game world.
         
-        :param currentPlayer: ID of the players whose turn it is.
+        :param currentPlayer: ID of the player whose turn it is.
         """
         self.__respawnSystem.turn()
         self.__positionBonusSystem.turn()
+        self.__baseCaptureSystem.turn()
         self.__displaySystem.turn()
         self.__shootingSystem.turn(currentPlayer)
+
+    def round(self) -> None:
+        """
+        Performs the round logic for the game world.
+        
+        :param currentPlayer: ID of the player whose turn it is.
+        """
+        self.__baseCaptureSystem.round()
 
     def quit(self):
         """
