@@ -42,19 +42,24 @@ class TankShootingSystem:
         self.__canShootTrough = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__initializeAttackMatrix(attackMatrix)
+        self.__catapultUsage = {}
         self.__initializeCatapultUsage(catapultUsage)
         self.__pathingOffsets = pathingOffsets
 
-    def __initializeAttackMatrix(self, attackMatrix: jsonDict):
+    def __initializeAttackMatrix(self, attackMatrix: jsonDict) -> None:
+        """
+        Initializes the attack matrix using servers attack matrix.
+
+        :param attackMatrix: A dictionary containing attack matrix from the server.
+        """
         self.__attackMatrix = {int(key) : values for key, values in attackMatrix.items()}
 
-    def __initializeCatapultUsage(self, catapultUsage: list) -> dict:
+    def __initializeCatapultUsage(self, catapultUsage: list) -> None:
         """
-        Initializes the usage of each catapult position based on the provided list.
+        Initializes the usage of each catapult position based on the usage history from the server.
 
         :param catapultUsage: A history of catapult usage. Catapults can be used a limited number of times.
         """
-        self.__catapultUsage = {}
 
         for hex in catapultUsage:
             position = HexToTuple(hex)
@@ -63,7 +68,12 @@ class TankShootingSystem:
             else:
                 self.__catapultUsage[position] += 1
 
-    def onRangeBonusReceived(self, tankId: str):
+    def onRangeBonusReceived(self, tankId: str) -> None:
+        """
+        Enables the range bonus for a tank if it doesn't have a bonus yet and the catapult isn't used up.
+
+        :param tankId: The ID of the tank receiving the range bonus.
+        """
         tank = self.__tanks.get(tankId)
 
         if tank:
@@ -82,7 +92,12 @@ class TankShootingSystem:
                     f"Catapult used: TankId:{tankId}, Position:{tankPosition}, TotalUses:{self.__catapultUsage[tankPosition]}")
                 self.__addBonusRange(shootingComponent)
 
-    def __addBonusRange(self, shootingComponent):
+    def __addBonusRange(self, shootingComponent) -> None:
+        """
+        Adds bonus range to the shooting component of a tank.
+
+        :param shootingComponent: The shooting component of the tank.
+        """
         if isinstance(shootingComponent, CurvedShootingComponent):
             shootingComponent.rangeBonusEnabled = True
             shootingComponent.maxAttackRange += 1
@@ -90,7 +105,12 @@ class TankShootingSystem:
             shootingComponent.rangeBonusEnabled = True
             shootingComponent.maxAttackDistance += 1
 
-    def __removeBonusRange(self, shootingComponent):
+    def __removeBonusRange(self, shootingComponent) -> None:
+        """
+        Removes the bonus range from the shooting component of a tank.
+
+        :param shootingComponent: The shooting component of the tank.
+        """
         if isinstance(shootingComponent, CurvedShootingComponent):
             shootingComponent.rangeBonusEnabled = False
             shootingComponent.maxAttackRange -= 1
@@ -179,7 +199,16 @@ class TankShootingSystem:
         else:
             raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
 
-    def __canAttack(self, shooterTankId: str, shooterOwnerId: int, receiverTankId, receiverOwnerId: int):
+    def __canAttack(self, shooterTankId: str, shooterOwnerId: int, receiverTankId: str, receiverOwnerId: int) -> bool:
+        """
+        Checks whether a tank can attack another tank based on the attack matrix and the owner IDs of the tanks.
+
+        :param shooterTankId: The ID of the tank attempting to attack.
+        :param shooterOwnerId: The owner ID of the tank attempting to attack.
+        :param receiverTankId: The ID of the tank being attacked.
+        :param receiverOwnerId: The owner ID of the tank being attacked.
+        :return: True if the attack is allowed, False otherwise.
+        """
         if shooterOwnerId == receiverOwnerId or not self.__tanks[receiverTankId]["isAlive"]:
             return False
 
@@ -389,11 +418,20 @@ class TankShootingSystem:
 
         return shootingOptions
     
-    def turn(self, ownerId):
+    def turn(self, ownerId: int) -> None:
+        """
+        Performs the turn logic for the system. 
+        
+        Clears the attack matrix of the current owner.
+        """
         self.__attackMatrix[ownerId].clear()
 
-    def reset(self, attackMatrix: jsonDict, catapultUsage: list):
+    def reset(self, attackMatrix: jsonDict, catapultUsage: list) -> None:
+        """
+        Resets the system to it's initial state.
+        """
         self.__initializeAttackMatrix(attackMatrix)
+        self.__catapultUsage.clear()
         self.__initializeCatapultUsage(catapultUsage)
         self.__tankMap.clear()
         self.__tanks.clear()

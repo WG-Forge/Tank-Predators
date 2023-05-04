@@ -243,5 +243,8 @@ class Bot:
         # either shooting chosen and no shooting options, or move chosen and no move options
         return "none", (-1, -1, -1)
 
-    def reset(self):
+    def reset(self) -> None:
+        """
+        Resets the bot it's initial state.
+        """
         self.__tanks.clear()

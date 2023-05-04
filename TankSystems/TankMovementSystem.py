@@ -90,7 +90,7 @@ class TankMovementSystem:
 
         return result
 
-    def move(self, tankId: str, newPosition: positionTuple):
+    def move(self, tankId: str, newPosition: positionTuple) -> None:
         """
         Move the specified tank to the new position, triggering a moved event.
 
@@ -117,7 +117,10 @@ class TankMovementSystem:
         if positionComponent:
             self.move(tankId, positionComponent.spawnPosition)
 
-    def reset(self):
-        self.__tankPositions = {}
-        self.__tankMap = {}
-        self.__spawnPoints = {}
+    def reset(self) -> None:
+        """
+        Resets the system to it's initial state.
+        """
+        self.__tankPositions.clear()
+        self.__tankMap.clear()
+        self.__spawnPoints.clear()

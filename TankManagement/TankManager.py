@@ -46,5 +46,8 @@ class TankManager:
         """
         return self.__tanks[tankId]
     
-    def reset(self):
-        self.__tanks = {}
+    def reset(self) -> None:
+        """
+        Resets the manager to it's initial state
+        """
+        self.__tanks.clear()

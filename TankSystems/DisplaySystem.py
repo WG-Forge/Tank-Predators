@@ -15,9 +15,12 @@ def runDisplay(map: Map, messageQueue: Queue) -> None:
 
 class Display:
     def __init__(self, map: Map, messageQueue: Queue) -> None:
-        '''
-        Draws the map in its initial form.
-        '''
+        """
+        Initializes a display for the given map, with the ability to receive update messages through a queue.
+
+        :param map: The map to display.
+        :param messageQueue: A queue used to receive update messages.
+        """
         self.__messageQueue = messageQueue
         self.__window = Tk()
         self.__map = map
@@ -37,11 +40,17 @@ class Display:
         draw_grid(self.__grid, self.__size, 0, 0)
         self.__initializeMapContent()
 
-    def __initializeMapContent(self):
+    def __initializeMapContent(self) -> None:
+        """
+        Draws static map objects.
+        """
         for position, obj in self.__map:
             self.__setCell(position, self.__colors.get(obj, "white"))
 
     def run(self):
+        """
+        Starts the display and runs an infinite loop to receive and handle messages.
+        """
         while True:
             try:
                 messageType, args = self.__messageQueue.get(block=False)
@@ -63,27 +72,27 @@ class Display:
             time.sleep(0.05)
        
     def __setCell(self, position: tuple, fillColor: str) -> None:
-        '''
-        Sets a cell to a given color on the map.
+        """
+        Sets the color of the cell at the given position on the map.
 
-        :param position: Position tuple of the cell to change
-        :param fillColor: Color to fill the cell with
-        '''
+        :param position: The position of the cell to change.
+        :param fillColor: The color to fill the cell with.
+        """
         offsetCoordinates = cube_to_offset(position[0], position[1])
         self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1,
                             fill=fillColor)
         
     def __emptyCell(self, position: tuple) -> None:
-        '''
-        Sets a cell to default color.
+        """
+        Sets the color of the cell at the given position on the map to the default color.
 
-        :param position: Position tuple of the cell to change
-        '''
+        :param position: The position of the cell to change.
+        """
         self.__setCell(position, self.__colors.get(self.__map.objectAt(position), "white"))
 
 class DisplaySystem:
     """
-    A system that manages the health of tanks.
+    A system that manages the display.
     """
     def __init__(self, map: Map, eventManager: EventManager) -> None:
         """
@@ -129,6 +138,12 @@ class DisplaySystem:
             self.__turnQueue[1].append((positionComponent.position, tankColor))
 
     def turn(self) -> None:
+        """
+        Performs the turn logic for the system.
+
+        It checks for any changes in tank position and updates the display accordingly. 
+        It then puts the updated display data into a message queue for processing by the display thread.
+        """
         for tankData in self.__tanks.values():
             positionComponent = tankData["positionComponent"]
             currentPosition = tankData["position"]
@@ -143,10 +158,16 @@ class DisplaySystem:
         self.__turnQueue[1].clear()
 
     def quit(self) -> None:
+        """
+        Stops the display thread.
+        """
         self.__messageQueue.put(("stop", []))
         self.__displayThread.join()
 
     def reset(self) -> None:
+        """
+        Resets the system to it's initial state.
+        """
         for tankData in self.__tanks.values():
             self.__turnQueue[0].append((tankData["position"],))
 

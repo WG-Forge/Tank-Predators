@@ -5,8 +5,6 @@ from Tanks.MEDIUM_TANK import MEDIUM_TANK
 from Tanks.SPG import SPG
 from Tanks.Tank import Tank
 from Aliases import jsonDict
-from Utils import HexToTuple
-
 
 class TankFactory:
     """
