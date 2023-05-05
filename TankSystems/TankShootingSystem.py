@@ -46,6 +46,9 @@ class TankShootingSystem:
         self.__initializeCatapultUsage(catapultUsage)
         self.__pathingOffsets = pathingOffsets
 
+    def getAttackMatrix(self):
+        return self.__attackMatrix
+
     def __initializeAttackMatrix(self, attackMatrix: jsonDict) -> None:
         """
         Initializes the attack matrix using servers attack matrix.

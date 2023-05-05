@@ -1,8 +1,8 @@
 from Map import Map
-from Aliases import positionTuple, shootingOptionsList
+from Aliases import positionTuple
 import math
 import random
-from Constants import ActionModifier, ShootingPriority, GameConstants
+from Constants import ActionModifier, ShootingPriority
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
@@ -136,14 +136,31 @@ class Bot:
 
         return shootableTanks
 
-    def __getTankShootingPriority(self, shootableTanks: dict[str, list[tuple[str, positionTuple]]]) -> dict[str, int]:
+    def __getTankShootingPriority(self, playerTanks, shootableTanks) -> dict[str, int]:
+        """
+        :param: shootableTanks dict[str, list[tuple[str, positionTuple]]]
+        """
         priorities = dict()
+        allyTankOwnerId = self.__tanks[playerTanks[0]].getComponent("owner").ownerId # arbitrary index in the list
         for enemyId in shootableTanks.keys():
             enemyTank = self.__tanks[enemyId]
             priority = 0
+            # check if enemy tank is capturing the base
             if self.__map.objectAt(enemyTank.getComponent("position").position) == "Base":
-                #priority += ShootingPriority.IS_IN_BASE
-                pass
+                priority += ShootingPriority.IS_IN_BASE.value
+            # increasing priority for every point captured
+            priority += enemyTank.getComponent("capture").capturePoints * ShootingPriority.CAPTURED_POINTS.value
+            # checking whether it's possible to destroy tank with tanks in range
+            numOfAllyAttackers = len(shootableTanks[enemyId])
+            if numOfAllyAttackers >= enemyTank.getComponent("health").currentHealth:
+                priority += ShootingPriority.CAN_BE_DESTROYED.value
+            # penalty for every attacker needed
+            priority += ShootingPriority.MULTIPLE_TANKS_NEEDED_PENALTY.value * (numOfAllyAttackers - 1)
+            # checking if enemy player attacked us in the previous turn
+            enemyTankOwnerId = enemyTank.getComponent("owner").ownerId
+            if allyTankOwnerId in self.__shootingSystem.getAttackMatrix()[enemyTankOwnerId]:
+                priority += ShootingPriority.ENEMY_ATTACKED_US.value
+
             priorities[enemyId] = priority
         return priorities
 
@@ -151,7 +168,7 @@ class Bot:
         self.__shootingPositions = dict()  # clearing data from past turns
         numTanks = len(playerTanks)
         shootableTanks = self.__getAllShootableTanks(playerTanks)
-        tankPriorities = self.__getTankShootingPriority(shootableTanks)
+        tankPriorities = self.__getTankShootingPriority(playerTanks, shootableTanks)
         # sorted by priority descending
         enemyTanksSorted = [k for k, v in sorted(tankPriorities.items(), key=lambda item: item[1], reverse=True)]
         numUsed = 0
@@ -161,7 +178,7 @@ class Bot:
                     continue
                 self.__shootingPositions[allyId] = shootingPosition
                 numUsed += 1
-                if numUsed == 5:
+                if numUsed == numTanks:
                     break
             else:
                 continue  # if there was no break
