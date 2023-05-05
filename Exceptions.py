@@ -1,24 +1,24 @@
-class BadCommandException(Exception):
+class ServerException(Exception):
     def __init__(self, message):
         Exception.__init__(self, message)
-        self.message = message
+        self.message = message 
 
-class AccessDeniedException(Exception):
-    def __init__(self, message):
-        Exception.__init__(self, message)
-        self.message = message
+class BadCommandException(ServerException):
+    pass
 
-class InappropriateGameStateException(Exception):
-    def __init__(self, message):
-        Exception.__init__(self, message)
-        self.message = message
+class AccessDeniedException(ServerException):
+    pass
 
-class TimeoutException(Exception):
-    def __init__(self, message):
-        Exception.__init__(self, message)
-        self.message = message
+class InappropriateGameStateException(ServerException):
+    pass
 
-class InternalServerErrorException(Exception):
+class TimeoutException(ServerException):
+    pass
+
+class InternalServerErrorException(ServerException):
+    pass
+
+class InputException(Exception):
     def __init__(self, message):
-        Exception.__init__(self, message)
         self.message = message
+        Exception.__init__(self)
