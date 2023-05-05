@@ -20,7 +20,6 @@ class Game:
         self.__bot = self.__world.getBot()
         self.__initializeTurnOrder()
         self.__previousPlayer = "Unknown"
-        self.__currentPlayer = self.__gameState["current_player_idx"]
         self.__turn()
         self.__play()
         self.__session.logout()
@@ -33,22 +32,23 @@ class Game:
             if tankData["player_id"] == self.__playerID:
                 self.__playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
+    def __reset(self):
+        self.__previousPlayer = "Unknown"
+        self.__gameState = self.__session.getGameState()
+        self.__world.resetSystems(self.__gameState)
+        self.__turn()
+
     def __selfTurn(self):
         self.__bot.getBestTargets(self.__playerTanks)  # calculate best targets to shoot at
         for tankId in self.__playerTanks:
             # perform local player actions
-            try:
-                action, targetPosition = self.__bot.getAction(tankId)
-                if action == "shoot":
-                    self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
-                    self.__world.shoot(tankId, targetPosition)
-                elif action == "move":
-                    self.__session.move({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
-                    self.__world.move(tankId, targetPosition)
-            except BadCommandException as exception:
-                logging.debug(f"BadCommandException:{exception.message}")
-                if exception.message != "You have already used this vehicle!":
-                    return
+            action, targetPosition = self.__bot.getAction(tankId)
+            if action == "shoot":
+                self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
+                self.__world.shoot(tankId, targetPosition)
+            elif action == "move":
+                self.__session.move({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
+                self.__world.move(tankId, targetPosition)
 
         self.__session.nextTurn()
 
@@ -70,7 +70,7 @@ class Game:
 
     def __turn(self) -> None:
         self.__world.addMissingTanks(self.__gameState)
-        self.__world.turn(self.__currentPlayer)
+        self.__world.turn(self.__gameState["current_player_idx"])
 
     def __round(self) -> None:
         if self.__gameState["current_turn"] % self.__gameState["num_players"] == 0:
@@ -79,10 +79,10 @@ class Game:
     def __play(self):
         while not self.__gameState["finished"]:
             try:
-                if self.__currentPlayer and self.__currentPlayer != self.__previousPlayer:
-                    self.__previousPlayer = self.__currentPlayer
-
-                    if self.__currentPlayer == self.__playerID:  # our turn
+                currentPlayer = self.__gameState["current_player_idx"]
+                if currentPlayer != self.__previousPlayer:
+                    self.__previousPlayer = currentPlayer
+                    if currentPlayer == self.__playerID:  # our turn
                         self.__selfTurn()
                     else:
                         self.__otherTurn()
@@ -90,17 +90,18 @@ class Game:
                     self.__session.nextTurn()
 
                 self.__gameState = self.__session.getGameState()
-                self.__currentPlayer = self.__gameState["current_player_idx"]
                 self.__turn()
                 self.__round()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
-                self.__gameState = self.__session.getGameState()
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
                 logging.debug(f"{exception.__class__.__name__}:{exception.message}")
-                self.__gameState = self.__session.getGameState()
-                self.__world.resetSystems(self.__gameState)
-            
+                self.__reset()
+            except BadCommandException as exception:
+                logging.debug(f"BadCommandException:{exception.message}")
+                self.__session.nextTurn()
+                self.__reset()
+
     def quit(self):
         self.__world.quit()
 
