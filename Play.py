@@ -67,11 +67,10 @@ def play():
                         print("Game ended!")
                 except AccessDeniedException as exception:
                     print(f"Access denied: {exception.message}")
-                    break
 
                 print("Play again? (Y/Any): ", end="")
                 playAgain = input()
-                game.quitDisplay()
+                game.quit()
                 if not playAgain.upper() == "Y":
                     return
             except InputException as e:
