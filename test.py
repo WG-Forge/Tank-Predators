@@ -25,16 +25,15 @@ def __threadBody(data, i):
     playerName = ''.join(random.choice(letters) for _ in range(10))  # player name
     with PlayerSession(playerName, "") as session:
         game = Game(session, data)
-        game.quitDisplay()
         if game.isWinner():
-            # winners.append(i) remove comment for seeing number of winners
+            winners.append(i) # remove comment for seeing number of winners
             pass
 
 
 def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
     letters = string.ascii_letters
     randomGameName = ''.join(random.choice(letters) for _ in range(10))  # name
-    data = {"game": "partijaaaa" + str(iteration), "num_turns": numTurns, "num_players": 3}
+    data = {"game": "game111" + str(iteration), "num_turns": numTurns, "num_players": 3}
     threads = []
 
     for i in range(numPlayers):
