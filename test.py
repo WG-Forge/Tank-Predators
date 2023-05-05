@@ -3,7 +3,7 @@ import random
 import string
 from threading import Thread
 
-from Play import Game
+from Game import Game
 from PlayerSession import PlayerSession
 
 def runOneWithUserName():
@@ -47,6 +47,7 @@ def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     winners = []
     winByPlayer = [0, 0, 0]
     numGames = 5
