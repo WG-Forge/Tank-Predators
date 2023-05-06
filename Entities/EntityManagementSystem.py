@@ -23,7 +23,7 @@ class EntityManagementSystem:
 
     def addMissingEntities(self, gameState: jsonDict):
         for entity in gameState["players"]:
-            if entity["idx"] in self.__players or entity["idx"] in self.__observers.keys:
+            if entity["idx"] in self.__players or entity["idx"] in self.__observers:
                 continue
 
             idx = entity["idx"]

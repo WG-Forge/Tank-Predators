@@ -28,7 +28,7 @@ class World():
         self.__initializeEventManager()
         self.__tankManager = TankManager(self.__eventManager)
         self.__initializeSystems(gameState)
-        self.__bot = Bot(self.__map, self.__pathingOffsets, self.__eventManager, self.__movementSystem, self.__shootingSystem)
+        self.__bot = Bot(self.__map, self.__pathingOffsets, self.__eventManager, self.__movementSystem, self.__shootingSystem, self.__entityManagementSystem)
 
     def __initializeEventManager(self) -> None:
         """

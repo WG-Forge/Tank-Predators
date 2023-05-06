@@ -13,7 +13,7 @@ class Bot:
         "CaptureDistanceMultiplier": 0.95
     }
 
-    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem):
+    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem, entityManagementSystem):
         """
         Initializes the bot.
 
@@ -30,6 +30,7 @@ class Bot:
         self.__shootingPositions = {}  # dict[playerTankId, positionTuple]
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
+        self.__entityManagementSystem = entityManagementSystem
 
     def __initializeMap(self):
         """
@@ -104,11 +105,11 @@ class Bot:
 
         return tileTypes
 
-    def __getBestAction(self, tankID: str, shootingOptions, movementOptions) -> tuple[positionTuple, str]:
+    def __getBestAction(self, tankID: str, movementOptions) -> str:
         allyTank = self.__tanks[tankID]
         allTileTypes = self.__getTileTypesInRange(movementOptions)
 
-        bestTargetPosition, modifier = self.__getBestTarget(allyTank, shootingOptions)
+        modifier = 0
 
         # checking if we are already on the central base
         if self.__map.objectAt(allyTank.getComponent("position").position):
@@ -118,7 +119,7 @@ class Bot:
             modifier += ActionModifier.CENTRAL_BASE_IN_MOVEMENT_RANGE.value
 
         action = "shoot" if modifier > 0 else "move"
-        return bestTargetPosition, action
+        return action
 
     def __getAllShootableTanks(self, playerTanks: list[str]) -> dict[str, list[tuple[str, positionTuple]]]:
         """
@@ -148,7 +149,7 @@ class Bot:
             # check if enemy tank is capturing the base
             if self.__map.objectAt(enemyTank.getComponent("position").position) == "Base":
                 priority += ShootingPriority.IS_IN_BASE.value
-            # increasing priority for every point captured
+            # increasing priority for every point captured by tank
             priority += enemyTank.getComponent("capture").capturePoints * ShootingPriority.CAPTURED_POINTS.value
             # checking whether it's possible to destroy tank with tanks in range
             numOfAllyAttackers = len(shootableTanks[enemyId])
@@ -160,6 +161,10 @@ class Bot:
             enemyTankOwnerId = enemyTank.getComponent("owner").ownerId
             if allyTankOwnerId in self.__shootingSystem.getAttackMatrix()[enemyTankOwnerId]:
                 priority += ShootingPriority.ENEMY_ATTACKED_US.value
+
+            # increasing priority for every player capture point
+            enemyCapturePoints = self.__entityManagementSystem.getPlayer(enemyTankOwnerId).getCapturePoints()
+            # priority += enemyCapturePoints * ShootingPriority.CAPTURED_POINTS.value
 
             priorities[enemyId] = priority
         return priorities
@@ -184,44 +189,6 @@ class Bot:
                 continue  # if there was no break
             break  # if there were a break
 
-    def __getBestTarget(self, allyTank: Tank, shootingOptions) -> tuple[positionTuple, float]:
-        """
-        Determines best possible target to shoot, depending on current game state.
-        The bigger the final modifier values is, the greater is the benefit of shooting at the target
-        Target with modifiers below zero should not be considered for shooting
-
-        :param: tankID of tank that shoots
-        :param: shootingOptions shootingOptionsList of all possible targets
-        :return: tuple of positionTuple(tile at which we should fire) and int final modifier value
-        """
-        numOptions = len(shootingOptions)
-
-        modifiers = [0 for _ in range(numOptions)]
-        for i in range(numOptions):
-            numberOfTargets = len(shootingOptions[i][1])
-            modifiers[i] += ActionModifier.NUMBER_OF_TARGETS.value * numberOfTargets
-            for j in range(numberOfTargets):
-                targetTank = self.__tanks[shootingOptions[i][1][j]]
-                # target is at central base
-                if self.__map.objectAt(targetTank.getComponent("position").position) == "Base":
-                    modifiers[i] += ActionModifier.ENEMY_TANK_ON_CENTRAL_BASE.value
-
-                # checking target health
-                targetHealth = targetTank.getComponent("health").currentHealth
-                allyDamage = allyTank.getComponent("shooting").damage
-                if allyDamage >= targetHealth:
-                    modifiers[i] += ActionModifier.ENOUGH_TO_DESTROY.value
-
-        # finding max modifier value
-        maxModifier = modifiers[0]
-        maxTuple = shootingOptions[0][0]
-        for i in range(1, numOptions):
-            if modifiers[i] > maxModifier:
-                maxModifier = modifiers[i]
-                maxTuple = shootingOptions[i][0]
-
-        return maxTuple, maxModifier
-
     def __healingModifier(self, allyTank, allTileTypes, totalTargetsDamage) -> float:
         allyHealth = allyTank.getComponent("health").currentHealth
         healingPossible = self.__isHealingPossible(allyTank, allTileTypes)
@@ -245,13 +212,9 @@ class Bot:
                or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
 
     def getAction(self, tankId: str) -> tuple[str, positionTuple]:
-        if tankId in self.__shootingPositions:
-            # if actionType == "shoot":
-            # randomChoice = random.randint(0, len(shootingOptions) - 1)
-            # return "shoot", shootingOptions[randomChoice][0]
-
-            return "shoot", self.__shootingPositions[tankId]
         movementOptions = self.__movementSystem.getMovementOptions(tankId)
+        if tankId in self.__shootingPositions:
+            return "shoot", self.__shootingPositions[tankId]
         if len(movementOptions) > 0:
             bestOptions = self.__getBestMove(movementOptions)
             randomChoice = random.randint(0, len(bestOptions) - 1)
