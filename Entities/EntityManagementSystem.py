@@ -1,11 +1,10 @@
 from Aliases import jsonDict
 from Entities.Observer import Observer
 from Entities.Player import Player
-from Entities.Entity import Entity
 
 
 class EntityManagementSystem:
-    __slots__ = ("__players", "__observers")
+    __slots__ = ("__players", "__observers", "__tankManager")
 
     def __init__(self, gameState: jsonDict):
         self.__players = {}  # dict[playerIDs, playerObject]
@@ -14,6 +13,19 @@ class EntityManagementSystem:
 
     def __initAllEntities(self, gameState: jsonDict):
         for player in gameState["players"]:
+            idx = player["idx"]
+            name = player["name"]
+            if player["is_observer"]:
+                self.__observers[idx] = Observer(idx, name)
+            else:
+                playerTanks = self.__initPlayerTanks(idx, gameState)
+                self.__players[idx] = Player(idx, name, playerTanks)
+
+    def addMissingEntities(self, gameState: jsonDict):
+        for player in gameState["players"]:
+            if player in (self.__players, self.__observers):
+                continue
+
             idx = player["idx"]
             name = player["name"]
             if player["is_observer"]:
@@ -46,3 +58,9 @@ class EntityManagementSystem:
     def reset(self) -> None:
         self.__players.clear()
         self.__observers.clear()
+
+    def turn(self, gameState):
+        currentPlayer = str(gameState["current_player_idx"])
+        capturePoints = gameState["win_points"][currentPlayer]["capture"]
+        destructionPoints = gameState["win_points"][currentPlayer]["kill"]
+        self.__players[int(currentPlayer)].turn(capturePoints, destructionPoints)

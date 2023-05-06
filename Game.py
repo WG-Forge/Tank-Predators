@@ -21,19 +21,10 @@ class Game:
         self.__world = World(self.__map, self.__gameState)
         self.__bot = self.__world.getBot()
         self.__Player = self.__world.getEntityManagementSystem().getPlayer(playerID)
-        self.__initializeTurnOrder()
         self.__previousPlayer = "Unknown"
         self.__turn()
         self.__play()
         self.__session.logout()
-
-    def __initializeTurnOrder(self):
-        turnOrder = ["spg", "light_tank", "heavy_tank", "medium_tank", "at_spg"]
-
-        self.__playerTanks = [None] * 5
-        for tankId, tankData in self.__gameState["vehicles"].items():
-            if tankData["player_id"] == self.__Player.getId():
-                self.__playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
     def __reset(self):
         self.__previousPlayer = "Unknown"
@@ -73,7 +64,8 @@ class Game:
 
     def __turn(self) -> None:
         self.__world.addMissingTanks(self.__gameState)
-        self.__world.turn(self.__gameState["current_player_idx"])
+        self.__world.addMissingPlayers(self.__gameState)
+        self.__world.turn(self.__gameState)
 
     def __round(self) -> None:
         if self.__gameState["current_turn"] % self.__gameState["num_players"] == 0:

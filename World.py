@@ -76,6 +76,14 @@ class World():
     def getEntityManagementSystem(self):
         return self.__entityManagementSystem
 
+    def addMissingPlayers(self, gameState: jsonDict) -> None:
+        """
+        Adds tanks that are in the game state but not in the local world.
+
+        :param gameState: A dictionary containing the game state data.
+        """
+        self.__entityManagementSystem.addMissingEntities(gameState)
+
     def addMissingTanks(self, gameState: jsonDict) -> None:
         """
         Adds tanks that are in the game state but not in the local world.
@@ -113,17 +121,19 @@ class World():
         """
         return self.__bot
     
-    def turn(self, currentPlayer: int) -> None:
+    def turn(self, gameState: jsonDict) -> None:
         """
         Performs the turn logic for the game world.
         
-        :param currentPlayer: ID of the player whose turn it is.
+        :param gameState: currentGame state at the end of the turn.
         """
+        currentPlayer = gameState["current_player_idx"]
         self.__respawnSystem.turn()
         self.__positionBonusSystem.turn()
         self.__baseCaptureSystem.turn()
         self.__displaySystem.turn()
         self.__shootingSystem.turn(currentPlayer)
+        self.__entityManagementSystem.turn(gameState)
 
     def round(self) -> None:
         """
