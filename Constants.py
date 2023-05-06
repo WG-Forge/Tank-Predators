@@ -52,4 +52,4 @@ class ShootingPriority(IntEnum):
     CAN_BE_DESTROYED = 1  # if tank can be destroyed
     MULTIPLE_TANKS_NEEDED_PENALTY = -0.25  # for each tank needed
     ENEMY_ATTACKED_US = 1  # if enemy player attacked us in the last turn
-    ENEMY_PLAYER_CAPTURED_POINTS = 2
+    ENEMY_PLAYER_CAPTURED_POINTS = 2  # number of points enemy player captured in total
