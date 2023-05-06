@@ -1,4 +1,4 @@
-from Entity import Entity
+from Entities.Entity import Entity
 
 
 class Observer(Entity):

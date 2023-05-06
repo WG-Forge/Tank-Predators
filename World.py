@@ -13,6 +13,7 @@ import Events.Events as AllEvents
 from Aliases import jsonDict, positionTuple
 from Utils import PathingOffsets
 from Bot import Bot
+from Entities.EntityManagementSystem import EntityManagementSystem
 
 class World():
     def __init__(self, map: jsonDict, gameState: jsonDict) -> None:
@@ -53,6 +54,7 @@ class World():
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
         self.__baseCaptureSystem = BaseCaptureSystem(self.__map, self.__eventManager)
+        self.__entityManagementSystem = EntityManagementSystem(gameState)
 
     def resetSystems(self, gameState: jsonDict) -> None:
         """
@@ -69,6 +71,10 @@ class World():
         self.__positionBonusSystem.reset()
         self.__baseCaptureSystem.reset()
         self.__bot.reset()
+        self.__entityManagementSystem.reset()
+
+    def getEntityManagementSystem(self):
+        return self.__entityManagementSystem
 
     def addMissingTanks(self, gameState: jsonDict) -> None:
         """

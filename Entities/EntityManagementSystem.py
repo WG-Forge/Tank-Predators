@@ -1,10 +1,10 @@
 from Aliases import jsonDict
-from Entity import Entity
-from Observer import Observer
-from Player import Player
+from Entities.Observer import Observer
+from Entities.Player import Player
+from Entities.Entity import Entity
 
 
-class PlayerManagementSystem:
+class EntityManagementSystem:
     __slots__ = ("__players", "__observers")
 
     def __init__(self, gameState: jsonDict):
@@ -17,10 +17,10 @@ class PlayerManagementSystem:
             idx = player["idx"]
             name = player["name"]
             if player["is_observer"]:
-                self.__observers = Observer(idx, name)
+                self.__observers[idx] = Observer(idx, name)
             else:
                 playerTanks = self.__initPlayerTanks(idx, gameState)
-                self.__players["idx"] = Player(idx, name, playerTanks)
+                self.__players[idx] = Player(idx, name, playerTanks)
 
     @staticmethod
     def __initPlayerTanks(playerId: int, gameState: jsonDict):
@@ -32,3 +32,17 @@ class PlayerManagementSystem:
                 playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
         return playerTanks
+
+    def getPlayer(self, playerId: int) -> Player | None:
+        if playerId in self.__players:
+            return self.__players[playerId]
+        return None
+
+    def getObserver(self, observerId: int) -> Observer | None:
+        if observerId in self.__observers:
+            return self.__players[observerId]
+        return None
+
+    def reset(self) -> None:
+        self.__players.clear()
+        self.__observers.clear()

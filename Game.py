@@ -7,17 +7,20 @@ from ServerConnection import Action
 import logging
 from Aliases import jsonDict
 from World import World
+from Entities.Player import Player
+
 
 class Game:
     def __init__(self, session: PlayerSession, data: jsonDict) -> None:
         self.__session = session
-        self.__playerID = self.__session.login(data)
+        playerID = self.__session.login(data)
 
         # Get static map data
         self.__map = self.__session.getMapInfo()
         self.__gameState = self.__session.getGameState()
         self.__world = World(self.__map, self.__gameState)
         self.__bot = self.__world.getBot()
+        self.__Player = self.__world.getEntityManagementSystem().getPlayer(playerID)
         self.__initializeTurnOrder()
         self.__previousPlayer = "Unknown"
         self.__turn()
@@ -29,7 +32,7 @@ class Game:
 
         self.__playerTanks = [None] * 5
         for tankId, tankData in self.__gameState["vehicles"].items():
-            if tankData["player_id"] == self.__playerID:
+            if tankData["player_id"] == self.__Player.getId():
                 self.__playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
     def __reset(self):
@@ -39,8 +42,8 @@ class Game:
         self.__turn()
 
     def __selfTurn(self):
-        self.__bot.getBestTargets(self.__playerTanks)  # calculate best targets to shoot at
-        for tankId in self.__playerTanks:
+        self.__bot.getBestTargets(self.__Player.getPlayerTanks())  # calculate best targets to shoot at
+        for tankId in self.__Player.getPlayerTanks():
             # perform local player actions
             action, targetPosition = self.__bot.getAction(tankId)
             if action == "shoot":
@@ -59,7 +62,7 @@ class Game:
         gameActions = self.__session.getGameActions()
 
         for action in gameActions["actions"]:
-            if action["player_id"] == self.__playerID:
+            if action["player_id"] == self.__Player.getId():
                 break
             if action["action_type"] == Action.MOVE:
                 actionData = action["data"]
@@ -82,7 +85,7 @@ class Game:
                 currentPlayer = self.__gameState["current_player_idx"]
                 if currentPlayer != self.__previousPlayer:
                     self.__previousPlayer = currentPlayer
-                    if currentPlayer == self.__playerID:  # our turn
+                    if currentPlayer == self.__Player.getId():  # our turn
                         self.__selfTurn()
                     else:
                         self.__otherTurn()
@@ -107,4 +110,4 @@ class Game:
         self.__world.quit()
 
     def isWinner(self) -> bool:
-        return self.__playerID == self.__gameState["winner"]
+        return self.__Player.getId() == self.__gameState["winner"]
