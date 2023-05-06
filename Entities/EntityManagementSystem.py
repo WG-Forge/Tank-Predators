@@ -22,13 +22,13 @@ class EntityManagementSystem:
                 self.__players[idx] = Player(idx, name, playerTanks)
 
     def addMissingEntities(self, gameState: jsonDict):
-        for player in gameState["players"]:
-            if player in (self.__players, self.__observers):
+        for entity in gameState["players"]:
+            if entity["idx"] in self.__players or entity["idx"] in self.__observers.keys:
                 continue
 
-            idx = player["idx"]
-            name = player["name"]
-            if player["is_observer"]:
+            idx = entity["idx"]
+            name = entity["name"]
+            if entity["is_observer"]:
                 self.__observers[idx] = Observer(idx, name)
             else:
                 playerTanks = self.__initPlayerTanks(idx, gameState)
@@ -44,6 +44,12 @@ class EntityManagementSystem:
                 playerTanks[turnOrder.index(tankData["vehicle_type"])] = tankId
 
         return playerTanks
+
+    def getPlayers(self):
+        return self.__players
+
+    def getObservers(self):
+        return self.__observers
 
     def getPlayer(self, playerId: int) -> Player | None:
         if playerId in self.__players:

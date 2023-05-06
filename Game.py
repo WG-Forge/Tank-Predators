@@ -98,6 +98,8 @@ class Game:
                 self.__session.nextTurn()
                 self.__reset()
 
+       
+
     def quit(self):
         self.__world.quit()
 

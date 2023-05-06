@@ -24,3 +24,4 @@ class Player(Entity):
     def turn(self, capturePoints: int, destructionPoints: int):
         self.__capturePoints = capturePoints
         self.__destructionPoints = destructionPoints
+
