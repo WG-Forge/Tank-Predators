@@ -84,9 +84,11 @@ class HexaCanvas(Canvas):
 
 
 class HexagonalGrid(HexaCanvas):
-    """ A grid whose each cell is hexagonal """
+    """ A grid whose each cell is hexagonal.
+    Has one private field - a dict to keep track of all the cells that are drawn as well their objectIDs"""
 
     def __init__(self, master, hexaSize, grid_width, grid_height, *args, **kwargs):
+        self.__drawn_cells_dict = {}
         width = grid_width * (hexaSize * 3)
         height = (3 ** 0.5 * hexaSize) * (grid_height * 2 - 1) + 10
 
@@ -113,9 +115,39 @@ class HexagonalGrid(HexaCanvas):
 
         id = self.create_hexagone(pix_x, pix_y, *args, **kwargs)
         # Delete the old cell.
-        if (xCell, yCell) in drawn_cells_dict:
-            self.delete(drawn_cells_dict[(xCell, yCell)])
-        drawn_cells_dict[(xCell, yCell)] = id
+        if (xCell, yCell) in self.__drawn_cells_dict:
+            self.delete(self.__drawn_cells_dict[(xCell, yCell)])
+        self.__drawn_cells_dict[(xCell, yCell)] = id
+
+
+    def draw_grid(self, size: int, x: int, y: int):
+        '''
+        Draws the grid. Uses drawn_cells_dict to keep track of already drawn cells.
+
+        :param size: The size of the grid.
+        :param x: The x coordinate of a given cell.
+        :param y: The y coordinate of a given cell.
+        '''
+        axial_coordinates = offset_to_axial(x, y)
+        distance_from_center = axial_distance(0, 0, axial_coordinates[0], axial_coordinates[1])
+        if distance_from_center == size or (x + size - 1, y + size - 1) in self.__drawn_cells_dict:
+            return
+
+        self.setCell(x + size - 1, y + size - 1, fill='white')
+
+        self.draw_grid(size, x, y - 1)  # up
+        if x & 1 == 0:
+            self.draw_grid(size, x + 1, y - 1)  # up right
+            self.draw_grid(size, x + 1, y)      # down right
+            self.draw_grid(size, x, y + 1)      # down
+            self.draw_grid(size, x - 1, y)      # down left
+            self.draw_grid(size, x - 1, y - 1)  # up left
+        else:
+            self.draw_grid(size, x + 1, y)      # up right
+            self.draw_grid(size, x + 1, y + 1)  # down right
+            self.draw_grid(size, x, y + 1)      # down
+            self.draw_grid(size, x - 1, y + 1)  # down left
+            self.draw_grid(size, x, y - 1)      # up left
 
 
 def axial_distance(aq: int, ar: int, bq: int, br: int):
@@ -162,42 +194,6 @@ def cube_to_offset(q: int, r: int):
     return (x, y)
 
 
-drawn_cells_dict = {}
-'''
-Used to keep track of all the cells that are drawn as well their objectIDs.
-'''
-
-
-def draw_grid(grid: HexagonalGrid, size: int, x: int, y: int):
-    '''
-    Draws the grid. Uses drawn_cells_dict to keep track of already drawn cells.
-
-    :param size: The size of the grid.
-    :param x: The x coordinate of a given cell.
-    :param y: The y coordinate of a given cell.
-    '''
-    axial_coordinates = offset_to_axial(x, y)
-    distance_from_center = axial_distance(0, 0, axial_coordinates[0], axial_coordinates[1])
-    if distance_from_center == size or (x + size - 1, y + size - 1) in drawn_cells_dict:
-        return
-
-    grid.setCell(x + size - 1, y + size - 1, fill='white')
-
-    draw_grid(grid, size, x, y - 1)  # up
-    if x & 1 == 0:
-        draw_grid(grid, size, x + 1, y - 1)  # up right
-        draw_grid(grid, size, x + 1, y)  # down right
-        draw_grid(grid, size, x, y + 1)  # down
-        draw_grid(grid, size, x - 1, y)  # down left
-        draw_grid(grid, size, x - 1, y - 1)  # up left
-    else:
-        draw_grid(grid, size, x + 1, y)  # up right
-        draw_grid(grid, size, x + 1, y + 1)  # down right
-        draw_grid(grid, size, x, y + 1)  # down
-        draw_grid(grid, size, x - 1, y + 1)  # down left
-        draw_grid(grid, size, x, y - 1)  # up left
-
-
 if __name__ == "__main__":
     tk = Tk()
     tk.title("HexTanks")
@@ -206,7 +202,6 @@ if __name__ == "__main__":
     grid = HexagonalGrid(tk, hexaSize=20, grid_width=board_size, grid_height=board_size)
     grid.grid(row=0, column=0, padx=5, pady=5)
 
-    draw_grid(grid, board_size, 0, 0)
-    # grid_set.clear()
+    grid.draw_grid(board_size, 0, 0)
 
     tk.mainloop()

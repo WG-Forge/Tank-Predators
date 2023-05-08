@@ -37,7 +37,7 @@ class Display:
         self.__grid = HexagonalGrid(self.__window, hexaSize=20, grid_width=self.__size, grid_height=self.__size)
         self.__grid.grid(row=0, column=0, padx=5, pady=5)
 
-        draw_grid(self.__grid, self.__size, 0, 0)
+        self.__grid.draw_grid(self.__size, 0, 0)
         self.__initializeMapContent()
 
     def __initializeMapContent(self) -> None:
