@@ -427,7 +427,8 @@ class TankShootingSystem:
         
         Clears the attack matrix of the current owner.
         """
-        self.__attackMatrix[ownerId].clear()
+        if ownerId in self.__attackMatrix:
+            self.__attackMatrix[ownerId].clear()
 
     def reset(self, attackMatrix: jsonDict, catapultUsage: list) -> None:
         """

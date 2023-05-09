@@ -67,6 +67,7 @@ class EntityManagementSystem:
 
     def turn(self, gameState):
         currentPlayer = str(gameState["current_player_idx"])
-        capturePoints = gameState["win_points"][currentPlayer]["capture"]
-        destructionPoints = gameState["win_points"][currentPlayer]["kill"]
-        self.__players[int(currentPlayer)].turn(capturePoints, destructionPoints)
+        if int(currentPlayer) in self.__players:
+            capturePoints = gameState["win_points"][currentPlayer]["capture"]
+            destructionPoints = gameState["win_points"][currentPlayer]["kill"]
+            self.__players[int(currentPlayer)].turn(capturePoints, destructionPoints)
