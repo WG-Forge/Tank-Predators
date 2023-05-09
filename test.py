@@ -33,7 +33,7 @@ def __threadBody(data, i):
 def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
     letters = string.ascii_letters
     randomGameName = ''.join(random.choice(letters) for _ in range(10))  # name
-    data = {"game": "testtt" + str(iteration), "num_turns": numTurns, "num_players": 3}
+    data = {"game": "testtt" + str(iteration), "num_turns": numTurns, "num_players": 3, "is_full": True}
     threads = []
 
     for i in range(numPlayers):
@@ -46,7 +46,7 @@ def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.DEBUG)
+    #logging.basicConfig(level=logging.DEBUG)
     winners = []
     winByPlayer = [0, 0, 0]
     numGames = 10

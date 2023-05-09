@@ -13,17 +13,17 @@ from Entities.Player import Player
 class Game:
     def __init__(self, session: PlayerSession, data: jsonDict) -> None:
         self.__session = session
-        playerID = self.__session.login(data)
+        self.__playerID = self.__session.login(data)
 
         # Get static map data
         self.__map = self.__session.getMapInfo()
         self.__gameState = self.__session.getGameState()
         self.__world = World(self.__map, self.__gameState)
         self.__bot = self.__world.getBot()
-        self.__Player = self.__world.getEntityManagementSystem().getPlayer(playerID)
+        self.__Player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
         self.__previousPlayer = "Unknown"
         self.__turn()
-        self.__play()
+        self.__run()
         self.__session.logout()
 
     def __reset(self):
@@ -31,6 +31,7 @@ class Game:
         self.__gameState = self.__session.getGameState()
         self.__world.resetSystems(self.__gameState)
         self.__turn()
+        self.__Player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
 
     def __selfTurn(self):
         self.__bot.getBestTargets(self.__Player.getPlayerTanks())  # calculate best targets to shoot at
@@ -71,6 +72,16 @@ class Game:
         if self.__gameState["current_turn"] % self.__gameState["num_players"] == 0:
             self.__world.round()
 
+    def __run(self):
+        while True:
+            self.__play()
+            if self.__gameState["current_round"] != self.__gameState["num_rounds"]:
+                self.__session.nextTurn()
+                self.__reset()
+            else:
+                logging.debug(self.__gameState)
+                return
+
     def __play(self):
         while not self.__gameState["finished"]:
             try:
@@ -85,9 +96,8 @@ class Game:
                     self.__session.nextTurn()
 
                 self.__gameState = self.__session.getGameState()
-                if not self.__gameState["finished"]:
-                    self.__turn()
-                    self.__round()
+                self.__turn()
+                self.__round()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
@@ -98,11 +108,11 @@ class Game:
                 self.__session.nextTurn()
                 self.__reset()
 
-        print("playerID: " + str(self.__Player.getId()))
-        for player in self.__world.getEntityManagementSystem().getPlayers().values():
-            print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
-        print("winner: ", self.__gameState["winner"])
-        print("------------------------------------")
+        # print("playerID: " + str(self.__Player.getId()))
+        # for player in self.__world.getEntityManagementSystem().getPlayers().values():
+        #     print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
+        # print("winner: ", self.__gameState["winner"])
+        # print("------------------------------------")
 
     def quit(self):
         self.__world.quit()
