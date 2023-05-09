@@ -21,6 +21,7 @@ class Display:
         :param map: The map to display.
         :param messageQueue: A queue used to receive update messages.
         """
+        self.__updateRate = 1/60
         self.__messageQueue = messageQueue
         self.__window = Tk()
         self.__map = map
@@ -52,24 +53,25 @@ class Display:
         Starts the display and runs an infinite loop to receive and handle messages.
         """
         while True:
-            try:
-                messageType, args = self.__messageQueue.get(block=False)
+            while True:
+                try:
+                    messageType, args = self.__messageQueue.get(block=False)
 
-                if messageType == "update":
-                    for update in args[0]:
-                        self.__emptyCell(*update)
+                    if messageType == "update":
+                        for update in args[0]:
+                            self.__emptyCell(*update)
 
-                    for update in args[1]:
-                        self.__setCell(*update)          
-                elif messageType == "stop":
-                    self.__window.quit()
-                    return
-            except:
-                pass
+                        for update in args[1]:
+                            self.__setCell(*update)          
+                    elif messageType == "stop":
+                        self.__window.quit()
+                        return
+                except:
+                    break
 
             self.__window.update_idletasks()
             self.__window.update()
-            time.sleep(0.05)
+            time.sleep(self.__updateRate)
        
     def __setCell(self, position: tuple, fillColor: str) -> None:
         """
