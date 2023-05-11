@@ -54,7 +54,7 @@ class Game:
         gameActions = self.__session.getGameActions()
 
         for action in gameActions["actions"]:
-            if action["player_id"] == self.__Player.getId():
+            if self.__Player is not None and action["player_id"] == self.__Player.getId():
                 break
             if action["action_type"] == Action.MOVE:
                 actionData = action["data"]
@@ -88,7 +88,8 @@ class Game:
                 currentPlayer = self.__gameState["current_player_idx"]
                 if currentPlayer != self.__previousPlayer:
                     self.__previousPlayer = currentPlayer
-                    if currentPlayer == self.__Player.getId():  # our turn
+
+                    if self.__Player is not None and currentPlayer == self.__Player.getId():  # our turn
                         self.__selfTurn()
                     else:
                         self.__otherTurn()
