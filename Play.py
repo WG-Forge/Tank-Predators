@@ -3,6 +3,7 @@ from PlayerSession import PlayerSession
 from Game import Game
 import logging
 
+
 def play():
     print("Name: ", end="")
     name = input()
@@ -46,21 +47,21 @@ def play():
                         data["num_players"] = playerCount
                     else:
                         raise InputException("Invalid player count!")
-                    
+
                     print("Full game? (Y/N): ", end="")
                     isFullGame = input()
                     if isFullGame.upper() == "Y":
                         data["is_full"] = True
                     elif not isFullGame.upper() == "N":
                         raise InputException("Invalid input!")
-                    
+
                 print("Are you an observer? (Y/N): ", end="")
                 isObserver = input()
                 if isObserver.upper() == "Y":
                     data["is_observer"] = True
                 elif not isObserver.upper() == "N":
                     raise InputException("Invalid input!")
-                
+
                 print("Playing...")
                 try:
                     game = Game(session, data)
@@ -84,6 +85,7 @@ def play():
                 print(e.message)
             except ValueError:
                 print("Invalid input!")
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)

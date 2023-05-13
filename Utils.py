@@ -1,15 +1,15 @@
 import itertools
 
 
-def HexToTuple(hex):
+def hexToTuple(hex):
     return (hex["x"], hex["y"], hex["z"])
 
 
-def TupleToHex(hexTuple):
+def tupleToHex(hexTuple):
     return {"x": hexTuple[0], "y": hexTuple[1], "z": hexTuple[2]}
 
 
-def PathingOffsets(maxDistance: int) -> list[dict[tuple[int, int, int], set[tuple[int, int, int]]]]:
+def pathingOffsets(maxDistance: int) -> list[dict[tuple[int, int, int], set[tuple[int, int, int]]]]:
     """
     Calculates all reachable positions for a given maximum travel distance using a hexagonal grid system.
     

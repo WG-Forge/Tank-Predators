@@ -7,7 +7,7 @@ from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
 from Tanks.Components.OwnerComponent import OwnerComponent
 from Aliases import positionTuple
 from Aliases import jsonDict
-from Utils import HexToTuple
+from Utils import hexToTuple
 
 
 class Tank(ABC):
@@ -25,8 +25,8 @@ class Tank(ABC):
         """
         self.__components = {}
 
-        spawnPosition = HexToTuple(tankData["spawn_position"])
-        position = HexToTuple(tankData["position"])
+        spawnPosition = hexToTuple(tankData["spawn_position"])
+        position = hexToTuple(tankData["position"])
         ownerId = tankData["player_id"]
         currentHealth = tankData["health"]
         capturePoints = tankData["capture_points"]

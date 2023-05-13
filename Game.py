@@ -1,8 +1,8 @@
 from Exceptions import BadCommandException, InappropriateGameStateException, TimeoutException, \
     InternalServerErrorException
 from PlayerSession import PlayerSession
-from Utils import HexToTuple
-from Utils import TupleToHex
+from Utils import hexToTuple
+from Utils import tupleToHex
 from ServerConnection import Action
 import logging
 from Aliases import jsonDict
@@ -21,13 +21,13 @@ class Game:
         self.__world = World(self.__map, self.__gameState)
         self.__bot = self.__world.getBot()
         self.__Player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
-        self.__previousPlayer = "Unknown"
+        self.__previousPlayer = None
         self.__turn()
         self.__run()
         self.__session.logout()
 
     def __reset(self):
-        self.__previousPlayer = "Unknown"
+        self.__previousPlayer = None
         self.__gameState = self.__session.getGameState()
         self.__world.resetSystems(self.__gameState)
         self.__turn()
@@ -39,10 +39,10 @@ class Game:
             # perform local player actions
             action, targetPosition = self.__bot.getAction(tankId)
             if action == "shoot":
-                self.__session.shoot({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
+                self.__session.shoot({"vehicle_id": int(tankId), "target": tupleToHex(targetPosition)})
                 self.__world.shoot(tankId, targetPosition)
             elif action == "move":
-                self.__session.move({"vehicle_id": int(tankId), "target": TupleToHex(targetPosition)})
+                self.__session.move({"vehicle_id": int(tankId), "target": tupleToHex(targetPosition)})
                 self.__world.move(tankId, targetPosition)
 
         self.__session.nextTurn()
@@ -58,10 +58,10 @@ class Game:
                 break
             if action["action_type"] == Action.MOVE:
                 actionData = action["data"]
-                self.__world.move(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                self.__world.move(str(actionData["vehicle_id"]), hexToTuple(actionData["target"]))
             elif action["action_type"] == Action.SHOOT:
                 actionData = action["data"]
-                self.__world.shoot(str(actionData["vehicle_id"]), HexToTuple(actionData["target"]))
+                self.__world.shoot(str(actionData["vehicle_id"]), hexToTuple(actionData["target"]))
 
     def __turn(self) -> None:
         self.__world.addMissingTanks(self.__gameState)

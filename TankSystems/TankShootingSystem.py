@@ -12,7 +12,7 @@ from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
 from Tanks.Components.HealthComponent import HealthComponent
 from Aliases import positionTuple, jsonDict, shootingOptionsList
 import itertools
-from Utils import HexToTuple
+from Utils import hexToTuple
 import logging
 
 class TankShootingSystem:
@@ -65,7 +65,7 @@ class TankShootingSystem:
         """
 
         for hex in catapultUsage:
-            position = HexToTuple(hex)
+            position = hexToTuple(hex)
             if position not in self.__catapultUsage:
                 self.__catapultUsage[position] = 1
             else:

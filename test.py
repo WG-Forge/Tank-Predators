@@ -51,7 +51,7 @@ if __name__ == "__main__":
     winByPlayer = [0, 0, 0]
     numGames = 10
     for i in range(numGames):
-        runAutomatically(1, 99, i)
+        runAutomatically(3, 99, i)
     for winner in winners:
         winByPlayer[winner] += 1
 

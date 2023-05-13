@@ -11,7 +11,7 @@ from TankSystems.BaseCaptureSystem import BaseCaptureSystem
 import inspect
 import Events.Events as AllEvents
 from Aliases import jsonDict, positionTuple
-from Utils import PathingOffsets
+from Utils import pathingOffsets
 from Bot import Bot
 from Entities.EntityManagementSystem import EntityManagementSystem
 
@@ -24,7 +24,7 @@ class World():
         :param gameState: A dictionary containing the game state data.
         """
         self.__map = Map(map)
-        self.__pathingOffsets = PathingOffsets(self.__map.getSize())
+        self.__pathingOffsets = pathingOffsets(self.__map.getSize())
         self.__initializeEventManager()
         self.__tankManager = TankManager(self.__eventManager)
         self.__initializeSystems(gameState)

@@ -1,6 +1,6 @@
 from Aliases import jsonDict
 from Aliases import positionTuple
-from Utils import HexToTuple
+from Utils import hexToTuple
 
 class Map:
     def __init__(self, mapData: jsonDict) -> None:
@@ -21,19 +21,19 @@ class Map:
         :param base: A dictionary containing the map content for the map.
         '''
         for baseHex in mapContent["base"]:
-            self.__map[HexToTuple(baseHex)] = "Base"
+            self.__map[hexToTuple(baseHex)] = "Base"
 
         for obstacleHex in mapContent["obstacle"]:
-            self.__map[HexToTuple(obstacleHex)] = "Obstacle"
+            self.__map[hexToTuple(obstacleHex)] = "Obstacle"
 
         for catapultHex in mapContent["catapult"]:
-            self.__map[HexToTuple(catapultHex)] = "Catapult"    
+            self.__map[hexToTuple(catapultHex)] = "Catapult"
 
         for lightRepairHex in mapContent["light_repair"]:
-            self.__map[HexToTuple(lightRepairHex)] = "LightRepair"
+            self.__map[hexToTuple(lightRepairHex)] = "LightRepair"
 
         for hardRepairHex in mapContent["hard_repair"]:
-            self.__map[HexToTuple(hardRepairHex)] = "HardRepair"
+            self.__map[hexToTuple(hardRepairHex)] = "HardRepair"
 
 
     def getSize(self) -> int:
