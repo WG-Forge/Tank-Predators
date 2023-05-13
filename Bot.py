@@ -188,7 +188,7 @@ class Bot:
 
         # sorting by capture points descending and health points ascending
         sortedTanks = [k for k, v in sorted(destructableTanks.items(),
-                                                  key=lambda x: (-x[1]['capture'], x[1]['health']))]
+                                                  key=lambda x: (x[1]['health'], -x[1]['capture']))]
 
         # Assigning tanks to their targets
         for enemyTankId in sortedTanks:
@@ -251,7 +251,6 @@ class Bot:
 
         self.__shootDestructableTanks(shootableTanks)
         self.__shootOtherTanks(shootableTanks)
-
 
     def __healingModifier(self, allyTank, allTileTypes, totalTargetsDamage) -> float:
         allyHealth = allyTank.getComponent("health").currentHealth

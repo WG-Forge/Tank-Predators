@@ -9,11 +9,11 @@ from PlayerSession import PlayerSession
 
 def runOneWithUserName():
     #logging.basicConfig(level=logging.DEBUG)
-    username = input()
+    username = "Pavle P"
     password = ""
     with PlayerSession(username, password) as session:
         data = {
-            "game": "abcabc",
+            "game": "testigra",
             "num_turns": 99,
             "num_players": 3,
             "is_observer": False,
@@ -37,7 +37,7 @@ def __threadBody(data, i):
 def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
     letters = string.ascii_letters
     randomGameName = ''.join(random.choice(letters) for _ in range(10))  # name
-    data = {"game": randomGameName + str(iteration), "num_turns": numTurns, "num_players": 3, "is_full": True}
+    data = {"game": "test1" + str(iteration), "num_turns": numTurns, "num_players": 3, "is_full": True}
     threads = []
 
     for i in range(numPlayers):
@@ -55,9 +55,11 @@ if __name__ == "__main__":
     winByPlayer = [0, 0, 0]
     numGames = 5
     for i in range(numGames):
-        runAutomatically(3, 99, i)
+        runAutomatically(1, 99, i)
     for winner in winners:
         winByPlayer[winner] += 1
+
+    print(winByPlayer)
 
 """
 Code for automatic running of threads
