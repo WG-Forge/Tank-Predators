@@ -20,7 +20,7 @@ class Game:
         self.__gameState = self.__session.getGameState()
         self.__world = World(self.__map, self.__gameState)
         self.__bot = self.__world.getBot()
-        self.__Player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
+        self.__player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
         self.__previousPlayer = None
         self.__turn()
         self.__run()
@@ -31,11 +31,11 @@ class Game:
         self.__gameState = self.__session.getGameState()
         self.__world.resetSystems(self.__gameState)
         self.__turn()
-        self.__Player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
+        self.__player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
 
     def __selfTurn(self):
-        self.__bot.getBestTargets(self.__Player.getPlayerTanks())  # calculate best targets to shoot at
-        for tankId in self.__Player.getPlayerTanks():
+        self.__bot.getBestTargets(self.__player.getPlayerTanks())  # calculate best targets to shoot at
+        for tankId in self.__player.getPlayerTanks():
             # perform local player actions
             action, targetPosition = self.__bot.getAction(tankId)
             if action == "shoot":
@@ -54,7 +54,7 @@ class Game:
         gameActions = self.__session.getGameActions()
 
         for action in gameActions["actions"]:
-            if self.__Player is not None and action["player_id"] == self.__Player.getId():
+            if self.__player is not None and action["player_id"] == self.__player.getId():
                 break
             if action["action_type"] == Action.MOVE:
                 actionData = action["data"]
@@ -89,7 +89,7 @@ class Game:
                 if currentPlayer != self.__previousPlayer:
                     self.__previousPlayer = currentPlayer
 
-                    if self.__Player is not None and currentPlayer == self.__Player.getId():  # our turn
+                    if self.__player is not None and currentPlayer == self.__player.getId():  # our turn
                         self.__selfTurn()
                     else:
                         self.__otherTurn()
@@ -109,7 +109,7 @@ class Game:
                 self.__session.nextTurn()
                 self.__reset()
 
-        # print("playerID: " + str(self.__Player.getId()))
+        # print("playerID: " + str(self.__player.getId()))
         # for player in self.__world.getEntityManagementSystem().getPlayers().values():
         #     print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
         # print("winner: ", self.__gameState["winner"])
@@ -119,4 +119,4 @@ class Game:
         self.__world.quit()
 
     def isWinner(self) -> bool:
-        return self.__Player.getId() == self.__gameState["winner"]
+        return self.__player.getId() == self.__gameState["winner"]
