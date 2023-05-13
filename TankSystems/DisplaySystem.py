@@ -3,7 +3,6 @@ from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
 from HexGrid import *
-from tkinter import *
 from threading import Thread
 from queue import Queue
 import time
