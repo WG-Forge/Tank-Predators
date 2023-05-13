@@ -1,8 +1,8 @@
 from Map import Map
-from Aliases import positionTuple
+from Aliases import positionTuple, shootableTanksDict
 import math
 import random
-from Constants import ActionModifier, ShootingPriority
+from Constants import ActionModifier, ShootingPriority, GameConstants
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
@@ -137,7 +137,8 @@ class Bot:
 
         return shootableTanks
 
-    def __getTankShootingPriority(self, playerTanks, shootableTanks) -> dict[str, int]:
+
+    def __getTankShootingPriority(self, playerTanks, shootableTanks: shootableTanksDict) -> dict[str, int]:
         """
         :param: shootableTanks dict[str, list[tuple[str, positionTuple]]]
         """
@@ -169,7 +170,61 @@ class Bot:
             priorities[enemyId] = priority
         return priorities
 
-    def getBestTargets(self, playerTanks: list[str]):
+    def __shootDestructableTanks(self, shootableTanks: shootableTanksDict):
+        # Getting all destructable tanks
+        destructableTanks = {}
+        for enemyId, allyTanks in shootableTanks.items():
+            enemyTank = self.__tanks[enemyId]
+            enemyHealth: int = enemyTank.getComponent("health").currentHealth
+            enemyCapturePoints: int = enemyTank.getComponent("capture").capturePoints
+            if len(allyTanks) >= enemyHealth:
+                destructableTanks[enemyId] = {
+                    'health': enemyHealth,
+                    'capture': enemyCapturePoints
+                }
+
+        if not destructableTanks:
+            return
+
+        # sorting by capture points descending and health points ascending
+        sortedTanks = [k for k, v in sorted(destructableTanks.items(),
+                                                  key=lambda x: (-x[1]['capture'], x[1]['health']))]
+
+        # Assigning tanks to their targets
+        for enemyTankId in sortedTanks:
+            for allyTankId, shootingPosition in shootableTanks[enemyTankId]:
+                if allyTankId in self.__shootingPositions:
+                    continue
+                self.__shootingPositions[allyTankId] = shootingPosition
+                if len(self.__shootingPositions) == GameConstants.NUM_TANKS.value:
+                    return
+
+    def __shootOtherTanks(self, shootableTanks: shootableTanksDict):
+        # Getting all destructable tanks
+        indestructableTanks = {}
+        for enemyId, allyTanks in shootableTanks.items():
+            enemyTank = self.__tanks[enemyId]
+            enemyHealth: int = enemyTank.getComponent("health").currentHealth
+            enemyCapturePoints: int = enemyTank.getComponent("capture").capturePoints
+            if len(allyTanks) < enemyHealth:
+                indestructableTanks[enemyId] = enemyCapturePoints
+
+        if not indestructableTanks:
+            return
+
+        # sorting by capture points descending
+        sortedTanks = [k for k, v in sorted(indestructableTanks.items(), key=lambda x: -x[1])]
+
+        # Assigning tanks to their targets
+        for enemyTankId in sortedTanks:
+            for allyTankId, shootingPosition in shootableTanks[enemyTankId]:
+                if allyTankId in self.__shootingPositions:
+                    continue
+                self.__shootingPositions[allyTankId] = shootingPosition
+                if len(self.__shootingPositions) == GameConstants.NUM_TANKS.value:
+                    return
+
+    def getBestTargets2(self, playerTanks: list[str]):
         self.__shootingPositions = dict()  # clearing data from past turns
         numTanks = len(playerTanks)
         shootableTanks = self.__getAllShootableTanks(playerTanks)
@@ -188,6 +243,15 @@ class Bot:
             else:
                 continue  # if there was no break
             break  # if there were a break
+
+    def getBestTargets(self, playerTanks: list[str]):
+        self.__shootingPositions = dict()  # clearing data from past turns
+        numAllyTanks = len(playerTanks)
+        shootableTanks = self.__getAllShootableTanks(playerTanks)
+
+        self.__shootDestructableTanks(shootableTanks)
+        self.__shootOtherTanks(shootableTanks)
+
 
     def __healingModifier(self, allyTank, allTileTypes, totalTargetsDamage) -> float:
         allyHealth = allyTank.getComponent("health").currentHealth

@@ -1,6 +1,10 @@
 from enum import IntEnum
 
 
+class GameConstants(IntEnum):
+    NUM_TANKS = 5
+
+
 class Result(IntEnum):
     """
     Enumerator of all possible result codes given in the docs.
@@ -49,7 +53,7 @@ class ActionModifier(IntEnum):
 class ShootingPriority(IntEnum):
     CAPTURED_POINTS = 1  # one for each captured point
     IS_IN_BASE = 0  # tank is in central base
-    CAN_BE_DESTROYED = 1  # if tank can be destroyed
-    MULTIPLE_TANKS_NEEDED_PENALTY = -0.25  # for each additional tank needed
+    CAN_BE_DESTROYED = 2  # if tank can be destroyed
+    MULTIPLE_TANKS_NEEDED_PENALTY = -0.5  # for each additional tank needed
     ENEMY_ATTACKED_US = 0  # if enemy player attacked us in the last turn
-    ENEMY_PLAYER_CAPTURED_POINTS = 1  # one for each enemy captured point
+    ENEMY_PLAYER_CAPTURED_POINTS = 0  # one for each enemy captured point

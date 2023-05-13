@@ -15,7 +15,7 @@ class TankFactory:
         """
         Initializes the TankFactory.
         """
-        self.__tankTypeMapping = {
+        self.__tankByType = {
             "at_spg": AT_SPG,
             "heavy_tank": HEAVY_TANK,
             "light_tank": LIGHT_TANK,
@@ -32,4 +32,4 @@ class TankFactory:
         """
         tankType = tankData["vehicle_type"]
 
-        return self.__tankTypeMapping[tankType](tankData)
+        return self.__tankByType[tankType](tankData)
