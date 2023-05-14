@@ -33,3 +33,27 @@ class Action(IntEnum):
     CHAT = 100
     MOVE = 101
     SHOOT = 102
+
+
+class ActionModifier(IntEnum):
+    """
+    Enumerator that contains modifiers to choose whether to attack or move
+    (positive value -> move, negative value -> shoot)
+    """
+    CENTRAL_BASE_IN_MOVEMENT_RANGE = -1
+    HEALING_IN_RANGE_DESTROY_THREAT = -1  # needs healing and there is a threat to destroy tank
+    HEALING_IN_RANGE_NO_THREAT = -0.5  # needs healing but there is no threat to destroy tank
+    DESTROY_THREAT = -0.99  # there is a threat to destroy tank, won't move if tank is at central base
+    ALLY_TANK_ON_CENTRAL_BASE = 1  # our tank is at the central base
+    ENOUGH_TO_DESTROY = 1  # we can destroy enemy tank
+    NUMBER_OF_TARGETS = 0.334  # bonus modifier if there are multiple targets(if there is 3 targets bonus is >1)
+    ENEMY_TANK_ON_CENTRAL_BASE = 0.7
+
+
+class ShootingPriority(IntEnum):
+    CAPTURED_POINTS = 1  # one for each captured point
+    IS_IN_BASE = 0  # tank is in central base
+    CAN_BE_DESTROYED = 2  # if tank can be destroyed
+    MULTIPLE_TANKS_NEEDED_PENALTY = -0.5  # for each additional tank needed
+    ENEMY_ATTACKED_US = 0  # if enemy player attacked us in the last turn
+    ENEMY_PLAYER_CAPTURED_POINTS = 0  # one for each enemy captured point
