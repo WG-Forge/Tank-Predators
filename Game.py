@@ -108,10 +108,11 @@ class Game:
                 self.__session.nextTurn()
                 self.__reset()
         print("playerID: " + str(self.__player.getId()))
-        for player in self.__world.getEntityManagementSystem().getPlayers().values():
-            print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
+        #for player in self.__world.getEntityManagementSystem().getPlayers().values():
+        #    print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
         print("winner: ", self.__gameState["winner"])
         print("------------------------------------")
+
 
     def quit(self):
         self.__world.quit()

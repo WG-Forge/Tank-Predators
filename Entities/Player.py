@@ -1,6 +1,4 @@
 from Entities.Entity import Entity
-from Tanks.Tank import Tank
-from TankManagement.TankManager import TankManager
 
 
 class Player(Entity):

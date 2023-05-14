@@ -13,7 +13,8 @@ class Bot:
         "CaptureDistanceMultiplier": 0.95
     }
 
-    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem, entityManagementSystem):
+    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem,
+                 entityManagementSystem):
         """
         Initializes the bot.
 
@@ -125,7 +126,7 @@ class Bot:
         :param: shootableTanks dict[str, list[tuple[str, positionTuple]]]
         """
         priorities = dict()
-        allyTankOwnerId = self.__tanks[playerTanks[0]].getComponent("owner").ownerId # arbitrary index in the list
+        allyTankOwnerId = self.__tanks[playerTanks[0]].getComponent("owner").ownerId  # arbitrary index in the list
         for enemyId in shootableTanks.keys():
             enemyTank = self.__tanks[enemyId]
             priority = 0
@@ -189,14 +190,16 @@ class Bot:
                     destroyableTanks += 1
                 capturePoints += enemyTank.getComponent("capture").capturePoints
 
-            shootingOptionsInfo[shootingPosition] = (destroyableTanks, capturePoints)
-
-        # sorting by number of tanks that can be destroyed first and then by sum of capture points decreasing
+            shootingOptionsInfo[shootingPosition] = {
+                'destroyable': destroyableTanks,
+                'capturePoints': capturePoints,
+                'numberOfTanks': len(enemyTankIds)
+            }
+        # Num destroyable > num attacking > num capture points
         shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
-                                                  key=lambda x: (-x[1][0], -x[1][1]))]
+                                                  key=lambda x: (-x[1]["destroyable"], -x[1]["numberOfTanks"],
+                                                                 -x[1]["capturePoints"]))]
         return shootingPositions[0]
-
-
 
     def getAction(self, tankId: str) -> tuple[str, positionTuple]:
         movementOptions = self.__movementSystem.getMovementOptions(tankId)
