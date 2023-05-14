@@ -1,91 +1,50 @@
-from Exceptions import AccessDeniedException, InputException
-from PlayerSession import PlayerSession
-from Game import Game
+import click
 import logging
+from PlayerSession import PlayerSession
+from Exceptions import AccessDeniedException
+from Game import Game
+    
+def validatePositive(ctx, param, value):
+    if value is not None and value <= 0:
+        raise click.BadParameter("Value must be a positive number.")
+    return value
 
+@click.command()
+@click.option("--name", required=True)
+@click.option("--password", default="")
+@click.option("--gamename", required=True)
+@click.option("--numturns", type=int, default=45, callback=validatePositive)
+@click.option("--numplayers", type=int, default=3, callback=validatePositive)
+@click.option("--fullgame", is_flag=True)
+@click.option("--observer", is_flag=True)
+@click.option("--wait", is_flag=True)
+def play(name, password, gamename, numturns, numplayers, fullgame, observer, wait):
+        data = {"game": gamename, "num_turns": numturns, "num_players": numplayers, "is_full": fullgame, "is_observer": observer}
 
-def play():
-    print("Name: ", end="")
-    name = input()
-
-    if not name:
-        print("Invalid name!")
-        return
-
-    print("Password (leave empty to skip): ", end="")
-    password = input()
-
-    with PlayerSession(name, password) as session:
-        data = {}
-        while True:
+        click.echo("Playing...")
+        
+        with PlayerSession(name, password) as playerSession:
             try:
-                data.clear()
+                game = Game(playerSession, data)
+            except AccessDeniedException as exception:
+                click.echo(f"Access denied: {exception.message}")
+                return None
 
-                print("Joining or creating a game? (J/C): ", end="")
-                playType = input()
+            if not observer:
+                returnData = game.isWinner()
+                if returnData:
+                    click.echo("You win!")
+                else:
+                    click.echo("You lose!")
+            else:
+                returnData = None
+                click.echo("Game over!")
+            
+            if wait:
+                click.prompt("Enter anything to exit", default="")
 
-                if not (playType.upper() == "C" or playType.upper() == "J"):
-                    raise InputException("Invalid input!")
-
-                print("Enter game name: ", end="")
-                gameName = input()
-                if not gameName:
-                    raise InputException("Invalid game name!")
-                data["game"] = gameName
-
-                if playType.upper() == "C":
-                    print("Enter turn count (max - 100): ", end="")
-                    turnCount = int(input())
-                    if 0 < turnCount < 101:
-                        data["num_turns"] = turnCount
-                    else:
-                        raise InputException("Invalid turn count!")
-
-                    print("Enter player count (1-3): ", end="")
-                    playerCount = int(input())
-                    if 0 < playerCount < 4:
-                        data["num_players"] = playerCount
-                    else:
-                        raise InputException("Invalid player count!")
-
-                    print("Full game? (Y/N): ", end="")
-                    isFullGame = input()
-                    if isFullGame.upper() == "Y":
-                        data["is_full"] = True
-                    elif not isFullGame.upper() == "N":
-                        raise InputException("Invalid input!")
-
-                print("Are you an observer? (Y/N): ", end="")
-                isObserver = input()
-                if isObserver.upper() == "Y":
-                    data["is_observer"] = True
-                elif not isObserver.upper() == "N":
-                    raise InputException("Invalid input!")
-
-                print("Playing...")
-                try:
-                    game = Game(session, data)
-
-                    if not isObserver.upper() == "Y":
-                        if game.isWinner():
-                            print("You win!")
-                        else:
-                            print("You lose!")
-                    else:
-                        print("Game ended!")
-                except AccessDeniedException as exception:
-                    print(f"Access denied: {exception.message}")
-
-                print("Play again? (Y/Any): ", end="")
-                playAgain = input()
-                game.quit()
-                if not playAgain.upper() == "Y":
-                    return
-            except InputException as e:
-                print(e.message)
-            except ValueError:
-                print("Invalid input!")
-
+            game.quit()
+            return returnData
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)
