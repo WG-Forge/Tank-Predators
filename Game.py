@@ -7,7 +7,6 @@ from ServerConnection import Action
 import logging
 from Aliases import jsonDict
 from World import World
-from Entities.Player import Player
 
 
 class Game:
