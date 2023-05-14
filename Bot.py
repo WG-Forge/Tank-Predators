@@ -11,7 +11,8 @@ class Bot:
     settings = {
         "CaptureBaseValue": 1,
         "CaptureDistanceMultiplier": 0.95,
-        "HealthPercentLossMultiplier": 0.1
+        "HealthPercentLossMultiplier": 0.1,
+        "PositionTargetsMultiplier": 1.01,
     }
 
     def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem,
@@ -94,6 +95,14 @@ class Bot:
         
         return enemyTanks
     
+    def __getPositions(self, tanks: list[int]):
+        positions = []
+
+        for tankId in tanks:
+            positions.append(self.__tanks[tankId].getComponent("position").position)
+        
+        return positions
+    
     def __getTotalDamages(self, tanks: list[int]):
         totalDamages = {}
 
@@ -106,8 +115,10 @@ class Bot:
         
         return totalDamages
 
-    def __buildHeuristicMap(self, tank: Tank):
-        valueMap = deepcopy(self.__baseMap)
+    def __buildHeuristicMap(self, tank: Tank, tankId: int, moves: list[positionTuple], currentPosition: positionTuple):
+        valueMap = {position: self.__baseMap[position] for position in moves}
+        valueMap[currentPosition] = self.__baseMap[currentPosition]
+
         ownerId = tank.getComponent("owner").ownerId
         healthComponent = tank.getComponent("health")
         maxHP = healthComponent.maxHealth
@@ -117,16 +128,26 @@ class Bot:
 
         totalDamages = self.__getTotalDamages(enemyTanks)
 
+        # adjust values based on potential damage taken
         for position, totalDamage in totalDamages.items():
             if position in valueMap:
                 healthValueLost = (1 - ((currentHP - totalDamage) / currentHP)) * Bot.settings["HealthPercentLossMultiplier"]
                 valueMap[position] *= (1 - healthValueLost)
 
+
+        enemyPositions = self.__getPositions(enemyTanks)
+        # adjust values based on potential enemy targets
+        for position in valueMap.keys():
+            targetablePositions = self.__shootingSystem.getShootablePositions(tankId, position)
+            enemyTargets = set(targetablePositions).intersection(enemyPositions)
+            valueMap[position] *= (Bot.settings["PositionTargetsMultiplier"] ** len(enemyTargets))
+
         return valueMap      
 
-    def __getBestMove(self, moves: list, tank: Tank) -> list[positionTuple]:
-        heuristicMap = self.__buildHeuristicMap(tank)
+
+    def __getBestMove(self, moves: list[positionTuple], tank: Tank, tankId: int) -> list[positionTuple]:
         currentPosition = tank.getComponent("position").position
+        heuristicMap = self.__buildHeuristicMap(tank, tankId, moves, currentPosition)
         maxValue = heuristicMap[currentPosition]
         maxPositions = []
 
@@ -173,7 +194,7 @@ class Bot:
             bestShootingOption = tank.getBestTarget(shootingOptions, self.__tanks)
             return "shoot", bestShootingOption
         if len(movementOptions) > 0:
-            bestOption = self.__getBestMove(movementOptions, tank)
+            bestOption = self.__getBestMove(movementOptions, tank, tankId)
             if bestOption:
                 return "move", bestOption
             else:
