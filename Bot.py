@@ -52,7 +52,6 @@ class Bot:
         self.__tanks[tankId] = tankEntity
 
     def __pathFromBase(self, basePosition: positionTuple):
-        # Gets the tanks maximum movement distance
         distance = self.__map.getSize()
         mapSize = distance
         distanceMultiplier = Bot.settings["CaptureDistanceMultiplier"]
@@ -62,22 +61,23 @@ class Bot:
 
         # Perform breadth-first search to find all possible moves
         for currentDistance in range(1, distance + 1):
-            # Iterate over all possible offsets for the current distance
             for offsetPosition, canBeReachedBy in self.__pathingOffsets[currentDistance].items():
-                # Check if the offset can be reached from a previously reachable position
-                if len(visited.intersection(canBeReachedBy)) > 0:
-                    currentPosition = tuple(x + y for x, y in zip(basePosition, offsetPosition))
-                    # Check if the current position is within the boundaries of the game map
-                    if abs(currentPosition[0]) < mapSize and abs(currentPosition[1]) < mapSize and abs(
-                            currentPosition[2]) < mapSize:
-                        currentPositionObject = self.__map.objectAt(currentPosition)
-                        # Check if the tank can move through the current position
-                        if currentPositionObject in self.__canMoveTo and currentPositionObject != "Base":
-                            currentValue = self.__valueMap.get(currentPosition, -math.inf)
-                            newValue = distanceMultiplier ** (currentDistance - 1)
-                            if newValue >= currentValue:
-                                visited.add(offsetPosition)
-                                self.__valueMap[currentPosition] = newValue
+                if not len(visited.intersection(canBeReachedBy)) > 0:
+                    continue # can't be reached
+
+                currentPosition = tuple(x + y for x, y in zip(basePosition, offsetPosition))
+                if not all(abs(pos) < mapSize for pos in currentPosition):
+                    continue # outside of map borders
+
+                currentPositionObject = self.__map.objectAt(currentPosition)
+                if not (currentPositionObject in self.__canMoveTo and currentPositionObject != "Base"):
+                    continue # tanks can't move there or it's another base cell
+
+                currentValue = self.__valueMap.get(currentPosition, -math.inf)
+                newValue = distanceMultiplier ** (currentDistance - 1)
+                if newValue >= currentValue:
+                    visited.add(offsetPosition)
+                    self.__valueMap[currentPosition] = newValue
 
     def __getBestMove(self, moves: list) -> list[positionTuple]:
         maxValue = -math.inf
