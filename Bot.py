@@ -1,8 +1,8 @@
 from Map import Map
-from Aliases import positionTuple, shootableTanksDict, shootingOptionsList
+from Aliases import positionTuple, shootingOptionsList
 import math
 import random
-from Constants import GameConstants
+from Constants import ActionModifier, ShootingPriority, GameConstants
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
