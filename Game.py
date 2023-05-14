@@ -34,7 +34,6 @@ class Game:
         self.__player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
 
     def __selfTurn(self):
-        self.__bot.getBestTargets(self.__player.getPlayerTanks())  # calculate best targets to shoot at
         for tankId in self.__player.getPlayerTanks():
             # perform local player actions
             action, targetPosition = self.__bot.getAction(tankId)
