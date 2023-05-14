@@ -32,6 +32,9 @@ class Bot:
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__entityManagementSystem = entityManagementSystem
 
+    def getTanks(self) -> dict[Tank]:
+        return self.__tanks
+
     def __initializeMap(self):
         """
         Initializes each positions value based on distance from a base
@@ -79,7 +82,6 @@ class Bot:
                             if newValue >= currentValue:
                                 visited.add(offsetPosition)
                                 self.__valueMap[currentPosition] = newValue
-        print(self.__valueMap)
 
     def __getBestMove(self, moves: list) -> list[positionTuple]:
         maxValue = -math.inf
@@ -128,37 +130,12 @@ class Bot:
         return (type(allyTank).__name__ == "MEDIUM_TANK" and "LightRepair" in allTileTypes) \
                or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
 
-    def __getBestTarget(self, tankId: str, shootingOptions: shootingOptionsList):
-        shootingOptionsInfo = dict()
-        allyTank = self.__tanks[tankId]
-        allyTankDamage = allyTank.getComponent("shooting").damage
-
-        for shootingPosition, enemyTankIds in shootingOptions:
-            destroyableTanks = 0
-            capturePoints = 0
-            for enemyTankId in enemyTankIds:
-                enemyTank = self.__tanks[enemyTankId]
-                enemyTankHealth = enemyTank.getComponent("health").currentHealth
-                if enemyTankHealth <= allyTankDamage:
-                    destroyableTanks += 1
-                capturePoints += enemyTank.getComponent("capture").capturePoints
-
-            shootingOptionsInfo[shootingPosition] = {
-                'destroyable': destroyableTanks,
-                'capturePoints': capturePoints,
-                'numberOfTanks': len(enemyTankIds)
-            }
-        # Num destroyable > num attacking > num capture points
-        shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
-                                                  key=lambda x: (-x[1]["destroyable"], -x[1]["numberOfTanks"],
-                                                                 -x[1]["capturePoints"]))]
-        return shootingPositions[0]
-
     def getAction(self, tankId: str) -> tuple[str, positionTuple]:
         movementOptions = self.__movementSystem.getMovementOptions(tankId)
         shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
+        tank = self.__tanks[tankId]
         if len(shootingOptions) > 0:
-            bestShootingOption = self.__getBestTarget(tankId, shootingOptions)
+            bestShootingOption = tank.getBestTarget(shootingOptions, self.__tanks)
             return "shoot", bestShootingOption
         if len(movementOptions) > 0:
             bestOptions = self.__getBestMove(movementOptions)
