@@ -13,8 +13,7 @@ def runOneWithUserName():
     password = ""
     with PlayerSession(username, password) as session:
         data = {
-            "game": "testigra",
-            "num_turns": 99,
+            "game": "ab",
             "num_players": 3,
             "is_observer": False,
             "is_full": True
@@ -37,7 +36,7 @@ def __threadBody(data, i):
 def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
     letters = string.ascii_letters
     randomGameName = ''.join(random.choice(letters) for _ in range(10))  # name
-    data = {"game": "test1" + str(iteration), "num_turns": numTurns, "num_players": 3, "is_full": True}
+    data = {"game": 'aaaa' + str(iteration), "num_turns": numTurns, "num_players": 2, "is_full": False}
     threads = []
 
     for i in range(numPlayers):
@@ -53,21 +52,19 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG)
     winners = []
     winByPlayer = [0, 0, 0]
-    numGames = 5
+    numGames = 100
     for i in range(numGames):
-        runAutomatically(1, 99, i)
+        runAutomatically(1, 45, i)
     for winner in winners:
         winByPlayer[winner] += 1
-
     print(winByPlayer)
-
 """
 Code for automatic running of threads
 winners = []
 winByPlayer = [0, 0, 0]
 numGames = 5
 for i in range(numGames):
-    runAutomatically(2, 99, i)
+    runAutomatically(3, 99, i)
 for winner in winners:
     winByPlayer[winner] += 1
 

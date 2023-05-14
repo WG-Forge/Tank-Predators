@@ -1,5 +1,5 @@
 from Map import Map
-from Aliases import positionTuple, shootableTanksDict
+from Aliases import positionTuple, shootableTanksDict, shootingOptionsList
 import math
 import random
 from Constants import ActionModifier, ShootingPriority, GameConstants
@@ -27,7 +27,6 @@ class Bot:
         self.__movementSystem = movementSystem
         self.__shootingSystem = shootingSystem
         self.__tanks = {}
-        self.__shootingPositions = {}  # dict[playerTankId, positionTuple]
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__entityManagementSystem = entityManagementSystem
@@ -188,16 +187,22 @@ class Bot:
 
         # sorting by capture points descending and health points ascending
         sortedTanks = [k for k, v in sorted(destructableTanks.items(),
-                                                  key=lambda x: (x[1]['health'], -x[1]['capture']))]
+                                                  key=lambda x: (-x[1]['capture'], x[1]['health']))]
 
         # Assigning tanks to their targets
         for enemyTankId in sortedTanks:
+            enemyTank = self.__tanks[enemyTankId]
+            enemyHealth: int = enemyTank.getComponent("health").currentHealth
+            tanksAttacking = 0
             for allyTankId, shootingPosition in shootableTanks[enemyTankId]:
                 if allyTankId in self.__shootingPositions:
                     continue
                 self.__shootingPositions[allyTankId] = shootingPosition
+                tanksAttacking += 1
                 if len(self.__shootingPositions) == GameConstants.NUM_TANKS.value:
                     return
+                if tanksAttacking == enemyHealth:
+                    break
 
     def __shootOtherTanks(self, shootableTanks: shootableTanksDict):
         # Getting all destructable tanks
@@ -274,10 +279,36 @@ class Bot:
         return (type(allyTank).__name__ == "MEDIUM_TANK" and "LightRepair" in allTileTypes) \
                or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
 
+    def __getBestTarget(self, tankId: str, shootingOptions: shootingOptionsList):
+        shootingOptionsInfo = dict()
+        allyTank = self.__tanks[tankId]
+        allyTankDamage = allyTank.getComponent("shooting").damage
+
+        for shootingPosition, enemyTankIds in shootingOptions:
+            destroyableTanks = 0
+            capturePoints = 0
+            for enemyTankId in enemyTankIds:
+                enemyTank = self.__tanks[enemyTankId]
+                enemyTankHealth = enemyTank.getComponent("health").currentHealth
+                if enemyTankHealth <= allyTankDamage:
+                    destroyableTanks += 1
+                capturePoints += enemyTank.getComponent("capture").capturePoints
+
+            shootingOptionsInfo[shootingPosition] = (destroyableTanks, capturePoints)
+
+        # sorting by number of tanks that can be destroyed first and then by sum of capture points decreasing
+        shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
+                                                  key=lambda x: (-x[1][0], -x[1][1]))]
+        return shootingPositions[0]
+
+
+
     def getAction(self, tankId: str) -> tuple[str, positionTuple]:
         movementOptions = self.__movementSystem.getMovementOptions(tankId)
+        shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
         if tankId in self.__shootingPositions:
-            return "shoot", self.__shootingPositions[tankId]
+            bestShootingOption = self.__getBestTarget(tankId, shootingOptions)
+            return "shoot", bestShootingOption
         if len(movementOptions) > 0:
             bestOptions = self.__getBestMove(movementOptions)
             randomChoice = random.randint(0, len(bestOptions) - 1)
