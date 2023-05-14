@@ -34,20 +34,22 @@ class AT_SPG(Tank):
         for shootingPosition, enemyTankIds in shootingOptions:
             destroyableTanks = 0
             capturePoints = 0
+            destructionPoints = 0
             for enemyTankId in enemyTankIds:
                 enemyTank = tanks[enemyTankId]
                 enemyTankHealth = enemyTank.getComponent("health").currentHealth
                 if enemyTankHealth <= allyTankDamage:
                     destroyableTanks += 1
                 capturePoints += enemyTank.getComponent("capture").capturePoints
-
+                destructionPoints += enemyTank.getComponent("destructionReward").destructionReward
             shootingOptionsInfo[shootingPosition] = {
                 'destroyable': destroyableTanks,
                 'capturePoints': capturePoints,
-                'numberOfTanks': len(enemyTankIds)
+                'numberOfTanks': len(enemyTankIds),
+                'destructionPoints': destructionPoints
             }
         # Num destroyable > num attacking > num capture points
         shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
                                                   key=lambda x: (-x[1]["destroyable"], -x[1]["numberOfTanks"],
-                                                                 -x[1]["capturePoints"]))]
+                                                                 -x[1]["capturePoints"], -x[1]["destructionPoints"]))]
         return shootingPositions[0]

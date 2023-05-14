@@ -3,11 +3,13 @@ import logging
 from PlayerSession import PlayerSession
 from Exceptions import AccessDeniedException
 from Game import Game
-    
+
+
 def validatePositive(ctx, param, value):
     if value is not None and value <= 0:
         raise click.BadParameter("Value must be a positive number.")
     return value
+
 
 @click.command()
 @click.option("--name", required=True)
@@ -19,32 +21,34 @@ def validatePositive(ctx, param, value):
 @click.option("--observer", is_flag=True)
 @click.option("--wait", is_flag=True)
 def play(name, password, gamename, numturns, numplayers, fullgame, observer, wait):
-        data = {"game": gamename, "num_turns": numturns, "num_players": numplayers, "is_full": fullgame, "is_observer": observer}
+    data = {"game": gamename, "num_turns": numturns, "num_players": numplayers, "is_full": fullgame,
+            "is_observer": observer}
 
-        click.echo("Playing...")
-        
-        with PlayerSession(name, password) as playerSession:
-            try:
-                game = Game(playerSession, data)
-            except AccessDeniedException as exception:
-                click.echo(f"Access denied: {exception.message}")
-                return None
+    click.echo("Playing...")
 
-            if not observer:
-                returnData = game.isWinner()
-                if returnData:
-                    click.echo("You win!")
-                else:
-                    click.echo("You lose!")
+    with PlayerSession(name, password) as playerSession:
+        try:
+            game = Game(playerSession, data)
+        except AccessDeniedException as exception:
+            click.echo(f"Access denied: {exception.message}")
+            return None
+
+        if not observer:
+            returnData = game.isWinner()
+            if returnData:
+                click.echo("You win!")
             else:
-                returnData = None
-                click.echo("Game over!")
-            
-            if wait:
-                click.prompt("Enter anything to exit", default="")
+                click.echo("You lose!")
+        else:
+            returnData = None
+            click.echo("Game over!")
 
-            game.quit()
-            return returnData
+        if wait:
+            click.prompt("Enter anything to exit", default="")
+
+        game.quit()
+        return returnData
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)
