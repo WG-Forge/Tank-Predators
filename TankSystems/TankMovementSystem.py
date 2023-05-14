@@ -65,28 +65,24 @@ class TankMovementSystem:
 
         # Perform breadth-first search to find all possible moves
         for currentDistance in range(1, distance + 1):
-            # Iterate over all possible offsets for the current distance
             for offsetPosition, canBeReachedBy in self.__pathingOffsets[currentDistance].items():
-                # Check if the offset can be reached from a previously reachable position
-                if len(visited.intersection(canBeReachedBy)) > 0:
-                    currentPosition = tuple(x + y for x, y in zip(startingPosition, offsetPosition))
-                    # Check if the current position is within the boundaries of the game map
-                    if abs(currentPosition[0]) < mapSize and abs(currentPosition[1]) < mapSize and abs(
-                            currentPosition[2]) < mapSize:
-                        currentPositionObject = self.__map.objectAt(currentPosition)
-                        # Check if the tank can move through the current position
-                        if currentPositionObject in self.__canMoveTo:
-                            visited.add(offsetPosition)
-                            # Check if the tank can move to the current position and if there is no other tank in that position
-                            if not currentPosition in self.__tankMap:
-                                spawnPoint = self.__spawnPoints.get(currentPosition)
-                                # Check if the current position is a spawnpoint
-                                if spawnPoint is not None:
-                                    # Check if the spawn point doesn't belong to the current tank
-                                    if spawnPoint != tankId:
-                                        continue
-                                # Add current position to the result list
-                                result.append(currentPosition)
+                if not len(visited.intersection(canBeReachedBy)) > 0:
+                    continue # can't be reached
+
+                currentPosition = tuple(x + y for x, y in zip(startingPosition, offsetPosition))
+                if not all(abs(pos) < mapSize for pos in currentPosition):
+                    continue # outside of map borders
+
+                currentPositionObject = self.__map.objectAt(currentPosition)
+                if not currentPositionObject in self.__canMoveTo:
+                    continue # tanks can't move there
+
+                visited.add(offsetPosition)
+                spawnPoint = self.__spawnPoints.get(currentPosition)
+                if currentPosition in self.__tankMap or (spawnPoint is not None and spawnPoint != tankId):
+                    continue # tank is already there or it's a different tank's spawnpoint
+
+                result.append(currentPosition)
 
         return result
 
