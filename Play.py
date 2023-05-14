@@ -1,6 +1,7 @@
 import click
 import logging
 from PlayerSession import PlayerSession
+from Exceptions import AccessDeniedException
 from Game import Game
     
 def validatePositive(ctx, param, value):
@@ -31,8 +32,12 @@ def play(name, password, gamename, numturns, numplayers, fullgame, observer, wai
         click.echo("Playing...")
         
         with PlayerSession(name, password) as playerSession:
-            game = Game(playerSession, data)
-            returnData = game.isWinner()
+            try:
+                game = Game(playerSession, data)
+                returnData = game.isWinner()
+            except AccessDeniedException as exception:
+                click.echo(f"Access denied: {exception.message}")
+                return None
 
             if returnData:
                 click.echo("You win!")
