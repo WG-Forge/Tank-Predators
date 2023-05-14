@@ -11,6 +11,7 @@ class Bot:
     settings = {
         "CaptureBaseValue": 1,
         "CaptureDistanceMultiplier": 0.95,
+        "HealthPercentLossMultiplier": 0.1
     }
 
     def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem,
@@ -118,7 +119,8 @@ class Bot:
 
         for position, totalDamage in totalDamages.items():
             if position in valueMap:
-                valueMap[position] *= ((currentHP - totalDamage) / currentHP) 
+                healthValueLost = (1 - ((currentHP - totalDamage) / currentHP)) * Bot.settings["HealthPercentLossMultiplier"]
+                valueMap[position] *= (1 - healthValueLost)
 
         return valueMap      
 
