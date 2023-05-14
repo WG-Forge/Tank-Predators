@@ -15,7 +15,7 @@ class HexaCanvas(Canvas):
     def setHexaSize(self, number):
         self.hexaSize = number
 
-    def create_hexagone(self, x, y, fill="blue"):
+    def create_hexagone(self, x, y, fill="blue", label=""):
         """
         Compute coordinates of 6 points relative to a center position.
         Point are numbered following this schema :
@@ -41,8 +41,15 @@ class HexaCanvas(Canvas):
         points.append((x - size / 2, y - deltaY))
         points.append((x - size, y))
 
-        id = self.create_polygon(points, fill=fill, width=1, outline="black")
-        return id
+        polygonId = self.create_polygon(points, fill=fill, width=1, outline="black")
+
+        coords = self.coords(polygonId)
+        centerX = sum(coords[::2]) / len(coords[::2])
+        centerY = sum(coords[1::2]) / len(coords[1::2])
+
+        # Add text to the middle of the polygon
+        labelId = self.create_text(x, y, text=label, fill='black')
+        return polygonId, labelId
 
 
 class HexagonalGrid(HexaCanvas):
@@ -52,6 +59,7 @@ class HexagonalGrid(HexaCanvas):
 
     def __init__(self, master, hexaSize, grid_width, grid_height, *args, **kwargs):
         self.__drawn_cells_dict = {}
+        self.__drawn_labels_dict = {}
         width = grid_width * (hexaSize * 3)
         height = (3**0.5 * hexaSize) * (grid_height * 2 - 1) + 10
 
@@ -84,11 +92,14 @@ class HexagonalGrid(HexaCanvas):
         pix_x = size + xCell * 1.5 * size + 5
         pix_y += 5
 
-        id = self.create_hexagone(pix_x, pix_y, *args, **kwargs)
+        polygonId, labelId = self.create_hexagone(pix_x, pix_y, *args, **kwargs)
         # Delete the old cell.
         if (xCell, yCell) in self.__drawn_cells_dict:
             self.delete(self.__drawn_cells_dict[(xCell, yCell)])
-        self.__drawn_cells_dict[(xCell, yCell)] = id
+        if (xCell, yCell) in self.__drawn_labels_dict:
+            self.delete(self.__drawn_labels_dict[(xCell, yCell)])
+        self.__drawn_cells_dict[(xCell, yCell)] = polygonId
+        self.__drawn_labels_dict[(xCell, yCell)] = labelId
 
     def draw_grid(self, size: int, x: int, y: int):
         """
@@ -108,7 +119,7 @@ class HexagonalGrid(HexaCanvas):
         ):
             return
 
-        self.setCell(x + size - 1, y + size - 1, fill="white")
+        self.setCell(x + size - 1, y + size - 1, fill="white", label="")
 
         self.draw_grid(size, x, y - 1)  # up
         if x & 1 == 0:
