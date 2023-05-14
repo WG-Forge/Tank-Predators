@@ -34,7 +34,6 @@ class Game:
         self.__player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
 
     def __selfTurn(self):
-        self.__bot.getBestTargets(self.__player.getPlayerTanks())  # calculate best targets to shoot at
         for tankId in self.__player.getPlayerTanks():
             # perform local player actions
             action, targetPosition = self.__bot.getAction(tankId)
@@ -108,6 +107,11 @@ class Game:
                 logging.debug(f"BadCommandException:{exception.message}")
                 self.__session.nextTurn()
                 self.__reset()
+        print("playerID: " + str(self.__player.getId()))
+        for player in self.__world.getEntityManagementSystem().getPlayers().values():
+            print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
+        print("winner: ", self.__gameState["winner"])
+        print("------------------------------------")
 
     def quit(self):
         self.__world.quit()
