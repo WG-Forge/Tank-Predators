@@ -360,12 +360,12 @@ class TankShootingSystem:
             if shootingComponent.rangeBonusEnabled:
                 self.__removeBonusRange(shootingComponent)
 
-    def getShootablePositions(self, tankId: str) -> set[positionTuple]:
+    def getShootablePositions(self, tankId: str) -> list[positionTuple]:
         """
-        Returns a set of shootable positions for the specified tank.
+        Returns a list of shootable positions for the specified tank.
 
         :param tankId: The ID of the tank for which to get the shooting shootable positions.
-        :return: A set of shootable positions, where each option is represented as a position tuple, 
+        :return: A list of shootable positions, where each option is represented as a position tuple, 
         :raises ValueError: If the specified tank ID is not in the shooting system.
         :raises KeyError: If the shooting component of the specified tank is not recognized.
         """
@@ -383,31 +383,31 @@ class TankShootingSystem:
         else:
             raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
 
-    def __getCurvedShootablePositions(self, shooterTankId: str) -> set[positionTuple]:
+    def __getCurvedShootablePositions(self, shooterTankId: str) -> list[positionTuple]:
         """
-        Returns a set of curved shootable positions for the specified tank.
+        Returns a list of curved shootable positions for the specified tank.
 
         :param shooterTankId: The ID of the tank for which to get the shooting options.
-        :return: A set of shooting options, where each option is represented as a position tuple
+        :return: A list of shooting options, where each option is represented as a position tuple
         """
-        shootingOptions = set()
+        shootingOptions = []
         shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
 
         for distance in range(shootingComponent.minAttackRange, shootingComponent.maxAttackRange + 1):
             for offset in self.__pathingOffsets[distance]:
-                shootingOptions.add(tuple(x + y for x, y in zip(shooterPosition, offset)))
+                shootingOptions.append(tuple(x + y for x, y in zip(shooterPosition, offset)))
 
         return shootingOptions
 
-    def __getDirectShootablePositions(self, shooterTankId: str) -> set[positionTuple]:
+    def __getDirectShootablePositions(self, shooterTankId: str) -> list[positionTuple]:
         """
-        Returns a set of direct shootable positions for the specified tank.
+        Returns a list of direct shootable positions for the specified tank.
 
         :param shooterTankId: The ID of the tank for which to get the shooting options.
-        :return: A set of shooting options, where each option is represented as a position tuple
+        :return: A list of shooting options, where each option is represented as a position tuple
         """
-        shootingOptions = set()
+        shootingOptions = []
         shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
 
@@ -415,7 +415,7 @@ class TankShootingSystem:
             for distance in range(1, shootingComponent.maxAttackDistance + 1):
                 shootingPosition = tuple(x + y * distance for x, y in zip(shooterPosition, permutation))
                 if self.__map.objectAt(shooterPosition) in self.__canShootTrough:
-                    shootingOptions.add(shootingPosition)
+                    shootingOptions.append(shootingPosition)
                 else:
                     break
 

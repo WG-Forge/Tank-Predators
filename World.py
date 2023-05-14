@@ -24,7 +24,7 @@ class World():
         :param gameState: A dictionary containing the game state data.
         """
         self.__map = Map(map)
-        self.__pathingOffsets = pathingOffsets(self.__map.getSize())
+        self.__pathingOffsets = pathingOffsets(self.__map.getSize() * 2) # from one side to another
         self.__initializeEventManager()
         self.__tankManager = TankManager(self.__eventManager)
         self.__initializeSystems(gameState)
