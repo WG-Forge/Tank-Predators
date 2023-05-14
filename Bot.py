@@ -79,6 +79,7 @@ class Bot:
                             if newValue >= currentValue:
                                 visited.add(offsetPosition)
                                 self.__valueMap[currentPosition] = newValue
+        print(self.__valueMap)
 
     def __getBestMove(self, moves: list) -> list[positionTuple]:
         maxValue = -math.inf
@@ -104,54 +105,6 @@ class Bot:
             tileTypes.add(self.__map.objectAt(position))
 
         return tileTypes
-
-    def __getBestAction(self, tankID: str, movementOptions) -> str:
-        allyTank = self.__tanks[tankID]
-        allTileTypes = self.__getTileTypesInRange(movementOptions)
-
-        modifier = 0
-
-        # checking if we are already on the central base
-        if self.__map.objectAt(allyTank.getComponent("position").position):
-            modifier += ActionModifier.ALLY_TANK_ON_CENTRAL_BASE.value
-        # checking if we can move to central base if we are not already there
-        elif "Base" in allTileTypes:
-            modifier += ActionModifier.CENTRAL_BASE_IN_MOVEMENT_RANGE.value
-
-        action = "shoot" if modifier > 0 else "move"
-        return action
-
-    def __getTankShootingPriority(self, playerTanks, shootableTanks: shootableTanksDict) -> dict[str, int]:
-        """
-        :param: shootableTanks dict[str, list[tuple[str, positionTuple]]]
-        """
-        priorities = dict()
-        allyTankOwnerId = self.__tanks[playerTanks[0]].getComponent("owner").ownerId  # arbitrary index in the list
-        for enemyId in shootableTanks.keys():
-            enemyTank = self.__tanks[enemyId]
-            priority = 0
-            # check if enemy tank is capturing the base
-            if self.__map.objectAt(enemyTank.getComponent("position").position) == "Base":
-                priority += ShootingPriority.IS_IN_BASE.value
-            # increasing priority for every point captured by tank
-            priority += enemyTank.getComponent("capture").capturePoints * ShootingPriority.CAPTURED_POINTS.value
-            # checking whether it's possible to destroy tank with tanks in range
-            numOfAllyAttackers = len(shootableTanks[enemyId])
-            if numOfAllyAttackers >= enemyTank.getComponent("health").currentHealth:
-                priority += ShootingPriority.CAN_BE_DESTROYED.value
-            # penalty for every attacker needed
-            priority += ShootingPriority.MULTIPLE_TANKS_NEEDED_PENALTY.value * (numOfAllyAttackers - 1)
-            # checking if enemy player attacked us in the previous turn
-            enemyTankOwnerId = enemyTank.getComponent("owner").ownerId
-            if allyTankOwnerId in self.__shootingSystem.getAttackMatrix()[enemyTankOwnerId]:
-                priority += ShootingPriority.ENEMY_ATTACKED_US.value
-
-            # increasing priority for every player capture point
-            enemyCapturePoints = self.__entityManagementSystem.getPlayer(enemyTankOwnerId).getCapturePoints()
-            # priority += enemyCapturePoints * ShootingPriority.CAPTURED_POINTS.value
-
-            priorities[enemyId] = priority
-        return priorities
 
     def __healingModifier(self, allyTank, allTileTypes, totalTargetsDamage) -> float:
         allyHealth = allyTank.getComponent("health").currentHealth
