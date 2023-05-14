@@ -123,6 +123,15 @@ class Tank(ABC):
         self.__components[componentName] = componentInstance
 
     def getBestTarget(self, shootingOptions: shootingOptionsList, tanks):
+        """
+        Shooting by priorities:
+        1. Tank that can be destroyed and has most capture points
+        2. Tank that can be destroyed
+        3. Tank that has the most capture points
+        :param shootingOptions: dict of all possible hexes at which tank can shoot and tanks it will hit
+        :param tanks: list of all tanks on the map
+        :return: position of hex that will hit most optimal target
+        """
         shootingOptionsInfo = dict()
         allyTankDamage = self.getComponent("shooting").damage
 
@@ -144,3 +153,11 @@ class Tank(ABC):
         shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
                                                   key=lambda x: (-x[1]["destroyable"], -x[1]["capturePoints"]))]
         return shootingPositions[0]
+
+    def isHealingNeeded(self, hexType: str):
+        """
+        Tank will prioritize healing if it's not capturing the base and if health is lower than max health
+        :param hexType: hexType that tank is standing on
+        :return: true if healing is needed, false otherwise
+        """
+        return hexType != "Base" and self.getComponent("health").currentHealth < self.getComponent("health").maxHealth
