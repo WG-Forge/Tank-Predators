@@ -2,7 +2,6 @@ from Map import Map
 from Aliases import positionTuple, shootingOptionsList
 import math
 import random
-from Constants import ActionModifier, ShootingPriority, GameConstants
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
@@ -107,18 +106,6 @@ class Bot:
             tileTypes.add(self.__map.objectAt(position))
 
         return tileTypes
-
-    def __healingModifier(self, allyTank, allTileTypes, totalTargetsDamage) -> float:
-        allyHealth = allyTank.getComponent("health").currentHealth
-        healingPossible = self.__isHealingPossible(allyTank, allTileTypes)
-        if allyHealth <= totalTargetsDamage:
-            if healingPossible:
-                return ActionModifier.HEALING_IN_RANGE_DESTROY_THREAT.value
-            else:
-                return ActionModifier.DESTROY_THREAT.value
-        else:
-            if healingPossible:
-                return ActionModifier.HEALING_IN_RANGE_NO_THREAT.value
 
     @staticmethod
     def __isHealingPossible(allyTank: Tank, allTileTypes: set[str]) -> bool:
