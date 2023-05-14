@@ -43,6 +43,7 @@ class TankShootingSystem:
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__initializeAttackMatrix(attackMatrix)
         self.__catapultUsage = {}
+        self.__maxCatapultUses = 3
         self.__initializeCatapultUsage(catapultUsage)
         self.__pathingOffsets = pathingOffsets
 
@@ -56,6 +57,15 @@ class TankShootingSystem:
         :param attackMatrix: A dictionary containing attack matrix from the server.
         """
         self.__attackMatrix = {int(key) : values for key, values in attackMatrix.items()}
+
+    def catapultAvailable(self, position: positionTuple) -> bool:
+        """
+        Checks wherever a catapult stil has uses left
+
+        :param positon: Position of the catapult
+        :return: True if catapult can be used, False otherwise
+        """  
+        return self.__catapultUsage.get(position, 0) < self.__maxCatapultUses
 
     def __initializeCatapultUsage(self, catapultUsage: list) -> None:
         """
@@ -87,7 +97,7 @@ class TankShootingSystem:
                 catapultUsage = self.__catapultUsage.get(tankPosition, 0)
                 if catapultUsage == 0:
                     self.__catapultUsage[tankPosition] = 1
-                elif catapultUsage >= 3:
+                elif catapultUsage >= self.__maxCatapultUses:
                     return
                 else:
                     self.__catapultUsage[tankPosition] += 1
