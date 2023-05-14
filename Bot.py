@@ -110,7 +110,6 @@ class Bot:
         # Perform breadth-first search to find all possible moves
         while len(queue) > 0:
             currentPosition, currentDistance = queue.popleft()
-            print(currentPosition)
             currentPositionObject = self.__map.objectAt(currentPosition)
             if not (currentPositionObject in self.__canMoveTo):
                 continue
@@ -159,7 +158,7 @@ class Bot:
     def __buildHeuristicMap(self, tank: Tank, tankId: int, moves: list[positionTuple], currentPosition: positionTuple):
         mapToUse = self.__baseMap
         
-        if True:#isinstance(tank, (LIGHT_TANK, MEDIUM_TANK)):
+        if isinstance(tank, (LIGHT_TANK, MEDIUM_TANK)):
             hasCatapult = tank.getComponent("shooting").rangeBonusEnabled
             if not hasCatapult:
                 success = self.__initializeCatapults(currentPosition)
