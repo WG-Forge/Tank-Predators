@@ -360,11 +360,14 @@ class TankShootingSystem:
             if shootingComponent.rangeBonusEnabled:
                 self.__removeBonusRange(shootingComponent)
 
-    def getShootablePositions(self, tankId: str) -> list[positionTuple]:
+    def getShootablePositions(self, tankId: str, position: positionTuple = None) -> list[positionTuple]:
         """
         Returns a list of shootable positions for the specified tank.
 
         :param tankId: The ID of the tank for which to get the shooting shootable positions.
+        :param position: (Optional) The position of the tank. If provided, the shootable positions will be calculated 
+            based on this position. If not provided, the shootable positions will be calculated based on
+            the current position of the tank.
         :return: A list of shootable positions, where each option is represented as a position tuple, 
         :raises ValueError: If the specified tank ID is not in the shooting system.
         :raises KeyError: If the shooting component of the specified tank is not recognized.
@@ -377,21 +380,25 @@ class TankShootingSystem:
         shootingComponent = tank["shooting"]
 
         if isinstance(shootingComponent, CurvedShootingComponent):
-            return self.__getCurvedShootablePositions(tankId)
+            return self.__getCurvedShootablePositions(tankId, position)
         elif isinstance(shootingComponent, DirectShootingComponent):
-            return self.__getDirectShootablePositions(tankId)
+            return self.__getDirectShootablePositions(tankId, position)
         else:
             raise KeyError(f"Unknown shooting component {type(shootingComponent).__name__} for TankId:{tankId}")
 
-    def __getCurvedShootablePositions(self, shooterTankId: str) -> list[positionTuple]:
+    def __getCurvedShootablePositions(self, shooterTankId: str, shooterPosition: positionTuple = None) -> list[positionTuple]:
         """
         Returns a list of curved shootable positions for the specified tank.
 
         :param shooterTankId: The ID of the tank for which to get the shooting options.
+        :param shooterPosition: (Optional) The position of the tank. If provided, the shootable positions will be calculated 
+                    based on this position. If not provided, the shootable positions will be calculated based on
+                    the current position of the tank.
         :return: A list of shooting options, where each option is represented as a position tuple
         """
         shootingOptions = []
-        shooterPosition = self.__tanks[shooterTankId]["position"]
+        if shooterPosition is None:
+            shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
 
         for distance in range(shootingComponent.minAttackRange, shootingComponent.maxAttackRange + 1):
@@ -400,15 +407,19 @@ class TankShootingSystem:
 
         return shootingOptions
 
-    def __getDirectShootablePositions(self, shooterTankId: str) -> list[positionTuple]:
+    def __getDirectShootablePositions(self, shooterTankId: str, shooterPosition: positionTuple = None) -> list[positionTuple]:
         """
         Returns a list of direct shootable positions for the specified tank.
 
         :param shooterTankId: The ID of the tank for which to get the shooting options.
+        :param shooterPosition: (Optional) The position of the tank. If provided, the shootable positions will be calculated 
+                    based on this position. If not provided, the shootable positions will be calculated based on
+                    the current position of the tank.
         :return: A list of shooting options, where each option is represented as a position tuple
         """
         shootingOptions = []
-        shooterPosition = self.__tanks[shooterTankId]["position"]
+        if shooterPosition is None:
+            shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
 
         for permutation in self.__hexPermutations:
