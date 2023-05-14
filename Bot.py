@@ -12,7 +12,7 @@ class Bot:
         "CaptureBaseValue": 1,
         "CaptureDistanceMultiplier": 0.95,
         "HealthPercentLossMultiplier": 0.1,
-        "PositionTargetsMultiplier": 1.01,
+        "PositionTargetsInCaptureMultiplier": 1.01,
     }
 
     def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem,
@@ -136,13 +136,17 @@ class Bot:
 
 
         enemyPositions = self.__getPositions(enemyTanks)
-        # adjust values based on potential enemy targets
+        # adjust values based on potential enemy targets that are capturing
         for position in valueMap.keys():
             targetablePositions = self.__shootingSystem.getShootablePositions(tankId, position)
-            enemyTargets = set(targetablePositions).intersection(enemyPositions)
-            valueMap[position] *= (Bot.settings["PositionTargetsMultiplier"] ** len(enemyTargets))
+            enemyTargets = 0
 
-        return valueMap      
+            for targetPosition in targetablePositions:
+                if targetPosition in enemyPositions and self.__map.objectAt(position) == "Base":
+                    enemyTargets += 1
+            valueMap[position] *= (Bot.settings["PositionTargetsInCaptureMultiplier"] ** enemyTargets)
+
+        return valueMap     
 
 
     def __getBestMove(self, moves: list[positionTuple], tank: Tank, tankId: int) -> list[positionTuple]:
