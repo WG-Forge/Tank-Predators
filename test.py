@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from threading import Thread
-
+import time
 from Game import Game
 from PlayerSession import PlayerSession
 
@@ -23,9 +23,7 @@ def runOneWithUserName():
         # game.quitDisplay()
 
 
-def __threadBody(data, i):
-    letters = string.ascii_letters
-    playerName = ''.join(random.choice(letters) for _ in range(10))  # player name
+def __threadBody(data, i, playerName):
     with PlayerSession(playerName, "") as session:
         game = Game(session, data)
         if game.isWinner():
@@ -40,7 +38,8 @@ def runAutomatically(numPlayers: int, numTurns: int, iteration: int):
     threads = []
 
     for i in range(numPlayers):
-        thread = Thread(target=__threadBody, args=(data, i))
+        playerName = ''.join(random.choice(letters) for _ in range(10))  # player name
+        thread = Thread(target=__threadBody, args=(data, i, playerName))
         threads.append(thread)
         thread.start()
 
