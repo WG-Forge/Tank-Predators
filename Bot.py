@@ -84,7 +84,6 @@ class Bot:
                     valueMap[currentPosition] = max(value, currentValue * value)
                 else:
                     valueMap[currentPosition] = value
-        print(valueMap)
 
     def __getEnemyTanks(self, allyOwnerId: int):
         enemyTanks = []
@@ -125,7 +124,8 @@ class Bot:
 
     def __getBestMove(self, moves: list, tank: Tank) -> list[positionTuple]:
         heuristicMap = self.__buildHeuristicMap(tank)
-        maxValue = -math.inf
+        currentPosition = tank.getComponent("position").position
+        maxValue = heuristicMap[currentPosition]
         maxPositions = []
 
         for move in moves:
@@ -137,7 +137,11 @@ class Bot:
             elif value == maxValue:
                 maxPositions.append(move)
 
-        return maxPositions
+        totalOptions = len(maxPositions) 
+        if totalOptions > 0:
+            return maxPositions[random.randint(0, totalOptions - 1)]
+        else:
+            return None
 
     def __getTileTypesInRange(self, movementOptions: list[positionTuple]) -> set:
         """
@@ -167,9 +171,11 @@ class Bot:
             bestShootingOption = tank.getBestTarget(shootingOptions, self.__tanks)
             return "shoot", bestShootingOption
         if len(movementOptions) > 0:
-            bestOptions = self.__getBestMove(movementOptions, tank)
-            randomChoice = random.randint(0, len(bestOptions) - 1)
-            return "move", bestOptions[randomChoice]
+            bestOption = self.__getBestMove(movementOptions, tank)
+            if bestOption:
+                return "move", bestOption
+            else:
+                return None, None
 
         # either shooting chosen and no shooting options, or move chosen and no move options
         return "none", (-1, -1, -1)
