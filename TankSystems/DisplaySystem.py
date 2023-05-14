@@ -8,9 +8,11 @@ from queue import Queue
 import time
 import copy
 
+
 def runDisplay(map: Map, messageQueue: Queue) -> None:
     display = Display(map, messageQueue)
     display.run()
+
 
 class Display:
     def __init__(self, map: Map, messageQueue: Queue) -> None:
@@ -20,7 +22,7 @@ class Display:
         :param map: The map to display.
         :param messageQueue: A queue used to receive update messages.
         """
-        self.__updateRate = 1/60
+        self.__updateRate = 1 / 60
         self.__messageQueue = messageQueue
         self.__window = Tk()
         self.__map = map
@@ -34,6 +36,12 @@ class Display:
             "HardRepair": "HotPink4",
         }
 
+        self.__labels = {
+            "Catapult": "CP",
+            "LightRepair": "LR",
+            "HardRepair": "HR",
+        }
+
         self.__grid = HexagonalGrid(self.__window, hexaSize=20, grid_width=self.__size, grid_height=self.__size)
         self.__grid.grid(row=0, column=0, padx=5, pady=5)
 
@@ -45,7 +53,7 @@ class Display:
         Draws static map objects.
         """
         for position, obj in self.__map:
-            self.__setCell(position, self.__colors.get(obj, "white"))
+            self.__setCell(position, self.__colors.get(obj, "white"), self.__labels.get(obj, ""))
 
     def run(self):
         """
@@ -61,7 +69,7 @@ class Display:
                             self.__emptyCell(*update)
 
                         for update in args[1]:
-                            self.__setCell(*update)          
+                            self.__setCell(*update)
                     elif messageType == "stop":
                         self.__window.quit()
                         return
@@ -71,8 +79,8 @@ class Display:
             self.__window.update_idletasks()
             self.__window.update()
             time.sleep(self.__updateRate)
-       
-    def __setCell(self, position: tuple, fillColor: str) -> None:
+
+    def __setCell(self, position: tuple, fillColor: str, label: str = "") -> None:
         """
         Sets the color of the cell at the given position on the map.
 
@@ -81,20 +89,23 @@ class Display:
         """
         offsetCoordinates = cube_to_offset(position[0], position[1])
         self.__grid.setCell(offsetCoordinates[0] + self.__size - 1, offsetCoordinates[1] + self.__size - 1,
-                            fill=fillColor)
-        
+                            fill=fillColor, label=label)
+
     def __emptyCell(self, position: tuple) -> None:
         """
         Sets the color of the cell at the given position on the map to the default color.
 
         :param position: The position of the cell to change.
         """
-        self.__setCell(position, self.__colors.get(self.__map.objectAt(position), "white"))
+        objectType: str = self.__map.objectAt(position)
+        self.__setCell(position, self.__colors.get(objectType, "white"), self.__labels.get(objectType, ""))
+
 
 class DisplaySystem:
     """
     A system that manages the display.
     """
+
     def __init__(self, map: Map, eventManager: EventManager) -> None:
         """
         Initializes the DisplaySystem.
@@ -111,6 +122,13 @@ class DisplaySystem:
         self.__messageQueue = Queue()
         self.__displayThread = Thread(target=runDisplay, args=(map, self.__messageQueue))
         self.__displayThread.start()
+        self.__tankLabels = {
+            "AT_SPG": "TD",
+            "HEAVY_TANK": "HT",
+            "LIGHT_TANK": "LT",
+            "MEDIUM_TANK": "MT",
+            "SPG": "SPG",
+        }
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
@@ -130,13 +148,15 @@ class DisplaySystem:
                 "healthComponent": healthComponent,
                 "position": positionComponent.position,
                 "positionComponent": positionComponent,
-                "ownerId": ownerComponent.ownerId
+                "ownerId": ownerComponent.ownerId,
+                "tankName": type(tankEntity).__name__
             }
             tankColor = self.__OwnerColors.get(ownerComponent.ownerId)
+            tankLabel = self.__tankLabels[type(tankEntity).__name__]
             if not tankColor:
                 self.__OwnerColors[ownerComponent.ownerId] = self.__teamColors.pop()
                 tankColor = self.__OwnerColors[ownerComponent.ownerId]
-            self.__turnQueue[1].append((positionComponent.position, tankColor))
+            self.__turnQueue[1].append((positionComponent.position, tankColor, tankLabel))
 
     def turn(self) -> None:
         """
@@ -151,7 +171,8 @@ class DisplaySystem:
             newPosition = positionComponent.position
             if newPosition != currentPosition:
                 self.__turnQueue[0].append((currentPosition,))
-                self.__turnQueue[1].append((newPosition, self.__OwnerColors[tankData["ownerId"]]))
+                self.__turnQueue[1].append((newPosition, self.__OwnerColors[tankData["ownerId"]],
+                                            self.__tankLabels[tankData["tankName"]]))
                 tankData["position"] = newPosition
 
         self.__messageQueue.put(("update", copy.deepcopy(self.__turnQueue)))
@@ -176,6 +197,3 @@ class DisplaySystem:
         self.__turnQueue[0].clear()
         self.__turnQueue[1].clear()
         self.__tanks.clear()
-
-            
-
