@@ -11,7 +11,6 @@ from TankSystems.BaseCaptureSystem import BaseCaptureSystem
 import inspect
 import Events.Events as AllEvents
 from Aliases import jsonDict, positionTuple
-from Utils import pathingOffsets
 from Bot import Bot
 from Entities.EntityManagementSystem import EntityManagementSystem
 
@@ -24,11 +23,10 @@ class World():
         :param gameState: A dictionary containing the game state data.
         """
         self.__map = Map(map)
-        self.__pathingOffsets = pathingOffsets(self.__map.getSize() * 2) # from one side to another
         self.__initializeEventManager()
         self.__tankManager = TankManager(self.__eventManager)
         self.__initializeSystems(gameState)
-        self.__bot = Bot(self.__map, self.__pathingOffsets, self.__eventManager, self.__movementSystem, self.__shootingSystem, self.__entityManagementSystem)
+        self.__bot = Bot(self.__map, self.__eventManager, self.__movementSystem, self.__shootingSystem, self.__entityManagementSystem)
 
     def __initializeEventManager(self) -> None:
         """
@@ -47,9 +45,9 @@ class World():
 
         :param gameState: A dictionary containing the game state data.
         """
-        self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager, self.__pathingOffsets)
+        self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager)
         self.__displaySystem = DisplaySystem(self.__map, self.__eventManager)
-        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, self.__pathingOffsets, gameState["attack_matrix"], gameState["catapult_usage"])
+        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, gameState["attack_matrix"], gameState["catapult_usage"])
         self.__healthSystem = TankHealthSystem(self.__eventManager)
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)

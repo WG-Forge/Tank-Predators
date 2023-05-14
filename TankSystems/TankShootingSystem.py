@@ -20,15 +20,12 @@ class TankShootingSystem:
     A system that manages the shooting of tanks.
     """
 
-    def __init__(self, map: Map, eventManager: EventManager,
-                 pathingOffsets: list[dict[tuple[int, int, int], set[tuple[int, int, int]]]], attackMatrix: jsonDict,
-                 catapultUsage: list):
+    def __init__(self, map: Map, eventManager: EventManager,attackMatrix: jsonDict, catapultUsage: list):
         """
         Initializes the TankShootingSystem.
 
         :param map: An instance of the Map that holds static game information.
         :param eventManager: The EventManager instance to use for triggering events.
-        :param pathingOffsets: A list of dictionaries representing all possible positions a target can move to in a given number of steps 
         """
         self.__map = map
         self.__eventManager = eventManager
@@ -45,7 +42,6 @@ class TankShootingSystem:
         self.__catapultUsage = {}
         self.__maxCatapultUses = 3
         self.__initializeCatapultUsage(catapultUsage)
-        self.__pathingOffsets = pathingOffsets
 
     def getAttackMatrix(self):
         return self.__attackMatrix
@@ -412,8 +408,8 @@ class TankShootingSystem:
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
 
         for distance in range(shootingComponent.minAttackRange, shootingComponent.maxAttackRange + 1):
-            for offset in self.__pathingOffsets[distance]:
-                shootingOptions.append(tuple(x + y for x, y in zip(shooterPosition, offset)))
+            for permutation in self.__hexPermutations:
+                shootingOptions.append(tuple(x + y * distance for x, y in zip(shooterPosition, permutation)))
 
         return shootingOptions
 

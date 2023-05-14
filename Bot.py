@@ -24,16 +24,14 @@ class Bot:
         "PositionTargetsInCaptureMultiplier": 1.01,
     }
 
-    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem,
+    def __init__(self, map: Map, eventManager: EventManager, movementSystem, shootingSystem,
                  entityManagementSystem):
         """
         Initializes the bot.
 
         :param map: An instance of the Map that holds static game information.
-        :param pathingOffsets: A list of dictionaries representing all possible positions a target can move to in a given number of steps 
         """
         self.__map = map
-        self.__pathingOffsets = pathingOffsets
         self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__mapSize = self.__map.getSize()
         self.__baseMap = {}

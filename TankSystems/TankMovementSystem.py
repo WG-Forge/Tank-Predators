@@ -5,30 +5,32 @@ from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
 from Aliases import positionTuple
+from collections import deque
+import itertools
 
 class TankMovementSystem:
     """
     A system that manages the movement of tanks.
     """
 
-    def __init__(self, map: Map, eventManager: EventManager, pathingOffsets: list[dict[tuple[int, int, int], set[tuple[int, int, int]]]]) -> None:
+    def __init__(self, map: Map, eventManager: EventManager) -> None:
         """
         Initializes the TankMovementSystem.
 
         :param map: An instance of the Map that holds static game information.
         :param eventManager: The EventManager instance to use for triggering events.
         :param maxDistance: The maximum distance a tank can travel
-        :param pathingOffsets: A list of dictionaries representing all possible positions a target can move to in a given number of steps 
         """
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__eventManager.addHandler(TankRespawnedEvent, self.onTankRespawned)
+        self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__map = map
+        self.__mapSize = map.getSize()
         self.__tankPositions = {}
         self.__tankMap = {}
         self.__spawnPoints = {}
         self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
-        self.__pathingOffsets = pathingOffsets
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
@@ -58,31 +60,34 @@ class TankMovementSystem:
         # Gets the tanks maximum movement distance
         distance = self.__tankPositions[tankId].speed
         mapSize = self.__map.getSize()
-        startingPosition = self.__tankPositions[tankId].position  # Get starting position to a tuple
-        visited = set()  # Set to store visited offsets
-        visited.add((0, 0, 0))  # Can always reach 0 offset since the tank is already there
+        startingPosition = self.__tankPositions[tankId].position
+
+        visited = set()  # Set to store visited positions
+        visited.add(startingPosition) 
         result = []  # List to store valid movement options
+        queue = deque()
+        queue.append(((startingPosition), 0))
+        visited.add(startingPosition)
 
         # Perform breadth-first search to find all possible moves
-        for currentDistance in range(1, distance + 1):
-            for offsetPosition, canBeReachedBy in self.__pathingOffsets[currentDistance].items():
-                if not len(visited.intersection(canBeReachedBy)) > 0:
-                    continue # can't be reached
+        while len(queue) > 0:
+            currentPosition, currentDistance = queue.popleft()
+            currentPositionObject = self.__map.objectAt(currentPosition)
+            if not (currentPositionObject in self.__canMoveTo):
+                continue
 
-                currentPosition = tuple(x + y for x, y in zip(startingPosition, offsetPosition))
-                if not all(abs(pos) < mapSize for pos in currentPosition):
-                    continue # outside of map borders
-
-                currentPositionObject = self.__map.objectAt(currentPosition)
-                if not currentPositionObject in self.__canMoveTo:
-                    continue # tanks can't move there
-
-                visited.add(offsetPosition)
-                spawnPoint = self.__spawnPoints.get(currentPosition)
-                if currentPosition in self.__tankMap or (spawnPoint is not None and spawnPoint != tankId):
-                    continue # tank is already there or it's a different tank's spawnpoint
-
+            spawnPoint = self.__spawnPoints.get(currentPosition)
+            if not currentPosition in self.__tankMap and (spawnPoint is None or spawnPoint == tankId):
                 result.append(currentPosition)
+
+            if currentDistance + 1 > distance:
+                continue
+
+            for permutation in self.__hexPermutations:
+                newPosition = tuple(x + y for x, y in zip(currentPosition, permutation))
+                if all(abs(pos) < self.__mapSize for pos in newPosition) and not newPosition in visited:
+                    visited.add(newPosition)
+                    queue.append(((newPosition), currentDistance + 1))
 
         return result
 
