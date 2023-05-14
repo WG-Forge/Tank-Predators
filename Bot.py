@@ -5,12 +5,21 @@ import random
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
+from Tanks.AT_SPG import AT_SPG
+from Tanks.HEAVY_TANK import HEAVY_TANK
+from Tanks.LIGHT_TANK import LIGHT_TANK
+from Tanks.MEDIUM_TANK import MEDIUM_TANK
+from Tanks.SPG import SPG
 from copy import deepcopy
+from collections import deque
+import itertools
 
 class Bot:
     settings = {
         "CaptureBaseValue": 1,
         "CaptureDistanceMultiplier": 0.95,
+        "CatapultBaseValue": 1,
+        "CatapultDistanceMultiplier": 0.95,
         "HealthPercentLossMultiplier": 0.1,
         "PositionTargetsInCaptureMultiplier": 1.01,
     }
@@ -28,6 +37,8 @@ class Bot:
         self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
         self.__mapSize = self.__map.getSize()
         self.__baseMap = {}
+        self.__catapultMap = {}
+        self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__teams = {}
         self.__initializeMap()
         self.__movementSystem = movementSystem
@@ -47,7 +58,36 @@ class Bot:
 
         for position, obj in self.__map:
             if obj == "Base":
-                self.__path(position, self.__baseMap, self.__mapSize * 2, Bot.settings["CaptureBaseValue"], Bot.settings["CaptureDistanceMultiplier"])
+                self.__path(position, self.__baseMap, Bot.settings["CaptureBaseValue"], Bot.settings["CaptureDistanceMultiplier"])
+
+    def __distance(self, position1: positionTuple, position2: positionTuple) -> int:
+        """
+        Returns the distance between two positions.
+
+        :param position1: The first position.
+        :param position2: The second position.
+        :return: The distance between the two positions.
+        """
+        return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(
+            position1[2] - position2[2])) // 2
+    
+    def __initializeCatapults(self, tankPosition):
+        """
+        Initializes each positions value based on distance from a catapult
+        """
+        closest = None
+        closestDistance = math.inf
+        for position, obj in self.__map:
+            if obj == "Catapult" and self.__shootingSystem.catapultAvailable(position):
+                distance = self.__distance(tankPosition, position)
+                if distance < closestDistance:
+                    closest = position
+                    closestDistance = distance
+        if closest:
+            self.__path(closest, self.__catapultMap, Bot.settings["CatapultBaseValue"], Bot.settings["CatapultDistanceMultiplier"])
+            return True
+        return False
+            
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
@@ -60,32 +100,33 @@ class Bot:
         ownerId = tankEntity.getComponent("owner").ownerId
         self.__teams.setdefault(ownerId, []).append(tankId)
 
-    def __path(self, position: positionTuple, valueMap, distance, baseValue, distanceMultiplier):
+    def __path(self, position: positionTuple, valueMap, baseValue, distanceMultiplier):
         visited = set()  # Set to store visited offsets
-        visited.add((0, 0, 0))  # Can always reach 0 offset since we are already there
         valueMap[position] = max(baseValue, valueMap.get(position, -math.inf))
+        queue = deque()
+        queue.append(((position), 0))
+        visited.add(position)
 
         # Perform breadth-first search to find all possible moves
-        for currentDistance in range(1, distance + 1):
-            for offsetPosition, canBeReachedBy in self.__pathingOffsets[currentDistance].items():
-                if not len(visited.intersection(canBeReachedBy)) > 0:
-                    continue # can't be reached
+        while len(queue) > 0:
+            currentPosition, currentDistance = queue.popleft()
+            print(currentPosition)
+            currentPositionObject = self.__map.objectAt(currentPosition)
+            if not (currentPositionObject in self.__canMoveTo):
+                continue
 
-                currentPosition = tuple(x + y for x, y in zip(position, offsetPosition))
-                if not all(abs(pos) < self.__mapSize for pos in currentPosition):
-                    continue # outside of map borders
+            currentValue = valueMap.get(currentPosition)
+            value = baseValue * (distanceMultiplier ** currentDistance)
+            if currentValue:
+                valueMap[currentPosition] = max(value, currentValue * value)
+            else:
+                valueMap[currentPosition] = value
 
-                currentPositionObject = self.__map.objectAt(currentPosition)
-                if not (currentPositionObject in self.__canMoveTo):
-                    continue # tanks can't move there
-
-                visited.add(offsetPosition)
-                currentValue = valueMap.get(currentPosition)
-                value = baseValue * (distanceMultiplier ** currentDistance)
-                if currentValue:
-                    valueMap[currentPosition] = max(value, currentValue * value)
-                else:
-                    valueMap[currentPosition] = value
+            for permutation in self.__hexPermutations:
+                newPosition = tuple(x + y for x, y in zip(currentPosition, permutation))
+                if all(abs(pos) < self.__mapSize for pos in newPosition) and not newPosition in visited:
+                    visited.add(newPosition)
+                    queue.append(((newPosition), currentDistance + 1))
 
     def __getEnemyTanks(self, allyOwnerId: int):
         enemyTanks = []
@@ -116,7 +157,16 @@ class Bot:
         return totalDamages
 
     def __buildHeuristicMap(self, tank: Tank, tankId: int, moves: list[positionTuple], currentPosition: positionTuple):
-        valueMap = {position: self.__baseMap[position] for position in moves}
+        mapToUse = self.__baseMap
+        
+        if True:#isinstance(tank, (LIGHT_TANK, MEDIUM_TANK)):
+            hasCatapult = tank.getComponent("shooting").rangeBonusEnabled
+            if not hasCatapult:
+                success = self.__initializeCatapults(currentPosition)
+                if success:
+                    mapToUse = self.__catapultMap
+
+        valueMap = {position: mapToUse[position] for position in moves}
         valueMap[currentPosition] = self.__baseMap[currentPosition]
 
         ownerId = tank.getComponent("owner").ownerId
