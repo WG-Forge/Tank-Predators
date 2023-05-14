@@ -31,14 +31,14 @@ class HexaCanvas(Canvas):
         Returns an objectID (int) of the created hexagone.
         """
         size = self.hexaSize
-        Δy = ((3**0.5) / 2) * size
+        deltaY = ((3**0.5) / 2) * size
 
         points = []
-        points.append((x - size / 2, y + Δy))
-        points.append((x + size / 2, y + Δy))
+        points.append((x - size / 2, y + deltaY))
+        points.append((x + size / 2, y + deltaY))
         points.append((x + size, y))
-        points.append((x + size / 2, y - Δy))
-        points.append((x - size / 2, y - Δy))
+        points.append((x + size / 2, y - deltaY))
+        points.append((x - size / 2, y - deltaY))
         points.append((x - size, y))
 
         id = self.create_polygon(points, fill=fill, width=1, outline="black")
@@ -75,11 +75,11 @@ class HexagonalGrid(HexaCanvas):
 
         # compute pixel coordinate of the center of the cell:
         size = self.hexaSize
-        Δy = ((3**0.5) / 2) * size
+        deltaY = ((3**0.5) / 2) * size
 
-        pix_y = Δy + 2 * Δy * yCell
+        pix_y = deltaY + 2 * deltaY * yCell
         if xCell % 2 == 1:
-            pix_y += Δy
+            pix_y += deltaY
 
         pix_x = size + xCell * 1.5 * size + 5
         pix_y += 5
@@ -150,7 +150,7 @@ def offset_to_axial(x: int, y: int):
     """
     q = x
     r = y - (x - (x & 1)) / 2
-    return (q, r)
+    return q, r
 
 
 def cube_to_offset(q: int, r: int):
@@ -164,7 +164,7 @@ def cube_to_offset(q: int, r: int):
     """
     x = q
     y = r + (q - (q & 1)) / 2
-    return (x, y)
+    return x, y
 
 
 if __name__ == "__main__":

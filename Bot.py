@@ -1,8 +1,7 @@
 from Map import Map
-from Aliases import positionTuple, shootableTanksDict, shootingOptionsList
+from Aliases import positionTuple, shootingOptionsList
 import math
 import random
-from Constants import ActionModifier, ShootingPriority, GameConstants
 from Events.Events import TankAddedEvent
 from Tanks.Tank import Tank
 from Events.EventManager import EventManager
@@ -13,7 +12,8 @@ class Bot:
         "CaptureDistanceMultiplier": 0.95
     }
 
-    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem, entityManagementSystem):
+    def __init__(self, map: Map, pathingOffsets, eventManager: EventManager, movementSystem, shootingSystem,
+                 entityManagementSystem):
         """
         Initializes the bot.
 
@@ -30,6 +30,9 @@ class Bot:
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__entityManagementSystem = entityManagementSystem
+
+    def getTanks(self) -> dict[Tank]:
+        return self.__tanks
 
     def __initializeMap(self):
         """
@@ -104,66 +107,6 @@ class Bot:
 
         return tileTypes
 
-    def __getBestAction(self, tankID: str, movementOptions) -> str:
-        allyTank = self.__tanks[tankID]
-        allTileTypes = self.__getTileTypesInRange(movementOptions)
-
-        modifier = 0
-
-        # checking if we are already on the central base
-        if self.__map.objectAt(allyTank.getComponent("position").position):
-            modifier += ActionModifier.ALLY_TANK_ON_CENTRAL_BASE.value
-        # checking if we can move to central base if we are not already there
-        elif "Base" in allTileTypes:
-            modifier += ActionModifier.CENTRAL_BASE_IN_MOVEMENT_RANGE.value
-
-        action = "shoot" if modifier > 0 else "move"
-        return action
-
-    def __getTankShootingPriority(self, playerTanks, shootableTanks: shootableTanksDict) -> dict[str, int]:
-        """
-        :param: shootableTanks dict[str, list[tuple[str, positionTuple]]]
-        """
-        priorities = dict()
-        allyTankOwnerId = self.__tanks[playerTanks[0]].getComponent("owner").ownerId # arbitrary index in the list
-        for enemyId in shootableTanks.keys():
-            enemyTank = self.__tanks[enemyId]
-            priority = 0
-            # check if enemy tank is capturing the base
-            if self.__map.objectAt(enemyTank.getComponent("position").position) == "Base":
-                priority += ShootingPriority.IS_IN_BASE.value
-            # increasing priority for every point captured by tank
-            priority += enemyTank.getComponent("capture").capturePoints * ShootingPriority.CAPTURED_POINTS.value
-            # checking whether it's possible to destroy tank with tanks in range
-            numOfAllyAttackers = len(shootableTanks[enemyId])
-            if numOfAllyAttackers >= enemyTank.getComponent("health").currentHealth:
-                priority += ShootingPriority.CAN_BE_DESTROYED.value
-            # penalty for every attacker needed
-            priority += ShootingPriority.MULTIPLE_TANKS_NEEDED_PENALTY.value * (numOfAllyAttackers - 1)
-            # checking if enemy player attacked us in the previous turn
-            enemyTankOwnerId = enemyTank.getComponent("owner").ownerId
-            if allyTankOwnerId in self.__shootingSystem.getAttackMatrix()[enemyTankOwnerId]:
-                priority += ShootingPriority.ENEMY_ATTACKED_US.value
-
-            # increasing priority for every player capture point
-            enemyCapturePoints = self.__entityManagementSystem.getPlayer(enemyTankOwnerId).getCapturePoints()
-            # priority += enemyCapturePoints * ShootingPriority.CAPTURED_POINTS.value
-
-            priorities[enemyId] = priority
-        return priorities
-
-    def __healingModifier(self, allyTank, allTileTypes, totalTargetsDamage) -> float:
-        allyHealth = allyTank.getComponent("health").currentHealth
-        healingPossible = self.__isHealingPossible(allyTank, allTileTypes)
-        if allyHealth <= totalTargetsDamage:
-            if healingPossible:
-                return ActionModifier.HEALING_IN_RANGE_DESTROY_THREAT.value
-            else:
-                return ActionModifier.DESTROY_THREAT.value
-        else:
-            if healingPossible:
-                return ActionModifier.HEALING_IN_RANGE_NO_THREAT.value
-
     @staticmethod
     def __isHealingPossible(allyTank: Tank, allTileTypes: set[str]) -> bool:
         """
@@ -174,35 +117,12 @@ class Bot:
         return (type(allyTank).__name__ == "MEDIUM_TANK" and "LightRepair" in allTileTypes) \
                or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
 
-    def __getBestTarget(self, tankId: str, shootingOptions: shootingOptionsList):
-        shootingOptionsInfo = dict()
-        allyTank = self.__tanks[tankId]
-        allyTankDamage = allyTank.getComponent("shooting").damage
-
-        for shootingPosition, enemyTankIds in shootingOptions:
-            destroyableTanks = 0
-            capturePoints = 0
-            for enemyTankId in enemyTankIds:
-                enemyTank = self.__tanks[enemyTankId]
-                enemyTankHealth = enemyTank.getComponent("health").currentHealth
-                if enemyTankHealth <= allyTankDamage:
-                    destroyableTanks += 1
-                capturePoints += enemyTank.getComponent("capture").capturePoints
-
-            shootingOptionsInfo[shootingPosition] = (destroyableTanks, capturePoints)
-
-        # sorting by number of tanks that can be destroyed first and then by sum of capture points decreasing
-        shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
-                                                  key=lambda x: (-x[1][0], -x[1][1]))]
-        return shootingPositions[0]
-
-
-
     def getAction(self, tankId: str) -> tuple[str, positionTuple]:
         movementOptions = self.__movementSystem.getMovementOptions(tankId)
         shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
+        tank = self.__tanks[tankId]
         if len(shootingOptions) > 0:
-            bestShootingOption = self.__getBestTarget(tankId, shootingOptions)
+            bestShootingOption = tank.getBestTarget(shootingOptions, self.__tanks)
             return "shoot", bestShootingOption
         if len(movementOptions) > 0:
             bestOptions = self.__getBestMove(movementOptions)

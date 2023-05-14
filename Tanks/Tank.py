@@ -5,7 +5,7 @@ from Tanks.Components.DestructionRewardComponent import DestructionRewardCompone
 from Tanks.Components.BaseCaptureComponent import BaseCaptureComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
 from Tanks.Components.OwnerComponent import OwnerComponent
-from Aliases import positionTuple
+from Aliases import positionTuple, shootingOptionsList
 from Aliases import jsonDict
 from Utils import hexToTuple
 
@@ -121,3 +121,43 @@ class Tank(ABC):
         :param componentInstance: The instance of the component to set.
         """
         self.__components[componentName] = componentInstance
+
+    def getBestTarget(self, shootingOptions: shootingOptionsList, tanks):
+        """
+        Shooting by priorities:
+        1. Tank that can be destroyed and has most capture points
+        2. Tank that can be destroyed
+        3. Tank that has the most capture points
+        :param shootingOptions: dict of all possible hexes at which tank can shoot and tanks it will hit
+        :param tanks: list of all tanks on the map
+        :return: position of hex that will hit most optimal target
+        """
+        shootingOptionsInfo = dict()
+        allyTankDamage = self.getComponent("shooting").damage
+
+        for shootingPosition, enemyTankIds in shootingOptions:
+            destroyableTanks = 0
+            capturePoints = 0
+            for enemyTankId in enemyTankIds:
+                enemyTank = tanks[enemyTankId]
+                enemyTankHealth = enemyTank.getComponent("health").currentHealth
+                if enemyTankHealth <= allyTankDamage:
+                    destroyableTanks += 1
+                capturePoints += enemyTank.getComponent("capture").capturePoints
+
+            shootingOptionsInfo[shootingPosition] = {
+                'destroyable': destroyableTanks,
+                'capturePoints': capturePoints,
+            }
+        # Num destroyable > num capture points
+        shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
+                                                  key=lambda x: (-x[1]["destroyable"], -x[1]["capturePoints"]))]
+        return shootingPositions[0]
+
+    def isHealingNeeded(self, hexType: str):
+        """
+        Tank will prioritize healing if it's not capturing the base and if health is lower than max health
+        :param hexType: hexType that tank is standing on
+        :return: true if healing is needed, false otherwise
+        """
+        return hexType != "Base" and self.getComponent("health").currentHealth < self.getComponent("health").maxHealth

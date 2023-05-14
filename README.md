@@ -29,19 +29,12 @@
     - --observer: Play as an observer.
     - --wait: Wait for user input before exiting.
     
-#### Game Logic:
-* Choice between shooting and moving depending on muliple parameters
-
-
 #### Game map interface:
-* White color tiles are empty
-* Green color tiles are the central base
-* Gray color tiles are obstacles
+* White colored hexes are empty
+* Green colored hexes are the central base
+* Black colored hexes are obstacles
+* Red colored hexes are catapults
+* LightPink colored hexes are light reapir
+* DarkPink colored hexes are heavy repair
 * Other colors are tanks of the teams, each their own color (orange, purple and blue)
 
-#### Game mechanics:
-* Tank movement with guaranteed legal moves
-* Tank shooting with rule of neutrality and different range of shooting depending on the tank type
-
-#### Server connection:
-* ServerConnection.py which works as a Request handler between client(player) and server(wargaming forge) 
