@@ -6,7 +6,9 @@ from Map import Map
 from Tanks.Tank import Tank
 from Aliases import positionTuple
 from collections import deque
+from Constants import HexTypes
 import itertools
+
 
 class TankMovementSystem:
     """
@@ -19,7 +21,6 @@ class TankMovementSystem:
 
         :param map: An instance of the Map that holds static game information.
         :param eventManager: The EventManager instance to use for triggering events.
-        :param maxDistance: The maximum distance a tank can travel
         """
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
@@ -30,7 +31,8 @@ class TankMovementSystem:
         self.__tankPositions = {}
         self.__tankMap = {}
         self.__spawnPoints = {}
-        self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
+        self.__canMoveTo = {HexTypes.EMPTY.value, HexTypes.BASE.value, HexTypes.CATAPULT.value,
+                            HexTypes.LIGHT_REPAIR.value, HexTypes.HARD_REPAIR.value}
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """

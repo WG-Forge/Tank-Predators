@@ -2,7 +2,8 @@ from Events.Events import TankAddedEvent
 from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
-import logging
+from Constants import HexTypes
+
 
 class BaseCaptureSystem:
     """
@@ -48,7 +49,7 @@ class BaseCaptureSystem:
         for tankData in self.__tanks.values():
             obj = self.__map.objectAt(tankData["position"].position)
 
-            if obj != "Base":
+            if obj != HexTypes.BASE.value:
                 tankData["capture"].capturePoints = 0
 
     def __getCapturingTanks(self) -> tuple[set[int], list[str]]:
@@ -66,7 +67,7 @@ class BaseCaptureSystem:
         for tankId, tankData in self.__tanks.items():
             obj = self.__map.objectAt(tankData["position"].position)
 
-            if obj == "Base":
+            if obj == HexTypes.BASE.value:
                 capturingTanks.append(tankId)
                 ownerIds.add(tankData["owner"])
 

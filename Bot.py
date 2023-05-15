@@ -12,6 +12,7 @@ from Tanks.MEDIUM_TANK import MEDIUM_TANK
 from Tanks.SPG import SPG
 from copy import deepcopy
 from collections import deque
+from Constants import HexTypes
 import itertools
 
 
@@ -33,7 +34,8 @@ class Bot:
         :param map: An instance of the Map that holds static game information.
         """
         self.__map = map
-        self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
+        self.__canMoveTo = {HexTypes.EMPTY.value, HexTypes.BASE.value, HexTypes.CATAPULT.value,
+                            HexTypes.LIGHT_REPAIR.value, HexTypes.HARD_REPAIR.value}
         self.__mapSize = self.__map.getSize()
         self.__baseMap = {}
         self.__catapultMap = {}
@@ -58,7 +60,7 @@ class Bot:
         """
 
         for position, obj in self.__map:
-            if obj == "Base":
+            if obj == HexTypes.BASE.value:
                 self.__path(position, self.__baseMap, Bot.settings["CaptureBaseValue"],
                             Bot.settings["CaptureDistanceMultiplier"])
 
@@ -142,7 +144,7 @@ class Bot:
     def __getMinBase(self, currentPosition):
         minDistance = math.inf
         for position, obj in self.__map:
-            if obj == "Base":
+            if obj == HexTypes.BASE.value:
                 minDistance = min(minDistance, self.__distance(position, currentPosition))
 
         if minDistance > 0:
@@ -169,13 +171,13 @@ class Bot:
         for position in valueMap.keys():
             totalValue = 0
             obj = self.__map.objectAt(position)
-            if obj == "LightRepair":
+            if obj == HexTypes.LIGHT_REPAIR.value:
                 if isinstance(tank, MEDIUM_TANK):
                     totalValue += (Bot.settings["RepairPositionBonus"] * (maxHP - currentHP))
-            elif obj == "HardRepair":
+            elif obj == HexTypes.HARD_REPAIR.value:
                 if isinstance(tank, (AT_SPG, HEAVY_TANK)):
                     totalValue += (Bot.settings["RepairPositionBonus"] * (maxHP - currentHP))
-            elif obj == "Catapult" and self.__shootingSystem.catapultAvailable(position) and not hasCatapult:
+            elif obj == HexTypes.CATAPULT.value and self.__shootingSystem.catapultAvailable(position) and not hasCatapult:
                 totalValue += Bot.settings["CatapultPositionBonus"]
 
             valueMap[position] += totalValue
@@ -237,8 +239,8 @@ class Bot:
         :param: allTileTypes tile types that are reachable
         :return: true if healing is possible in one move, false otherwise
         """
-        return (type(allyTank).__name__ == "MEDIUM_TANK" and "LightRepair" in allTileTypes) \
-               or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
+        return (type(allyTank).__name__ == "MEDIUM_TANK" and HexTypes.LIGHT_REPAIR.value in allTileTypes) \
+               or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and HexTypes.HARD_REPAIR.value in allTileTypes)
 
     # TODO: Improve evaluation
     def __evaluateCurrentActions(self, currentActions, movement, damagedEnemies):

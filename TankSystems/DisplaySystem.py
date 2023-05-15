@@ -5,6 +5,7 @@ from Tanks.Tank import Tank
 from HexGrid import *
 from threading import Thread
 from queue import Queue
+from Constants import HexTypes, TankTypes
 import time
 import copy
 
@@ -29,17 +30,17 @@ class Display:
         self.__window.title(map.getName() + " on HexTanks")
         self.__size = map.getSize()
         self.__colors = {
-            "Base": "green",
-            "Obstacle": "grey0",
-            "Catapult": "red",
-            "LightRepair": "HotPink3",
-            "HardRepair": "HotPink4",
+            HexTypes.BASE.value: "green",
+            HexTypes.OBSTACLE.value: "grey0",
+            HexTypes.CATAPULT.value: "red",
+            HexTypes.LIGHT_REPAIR.value: "HotPink3",
+            HexTypes.HARD_REPAIR.value: "HotPink4",
         }
 
         self.__labels = {
-            "Catapult": "CP",
-            "LightRepair": "LR",
-            "HardRepair": "HR",
+            HexTypes.CATAPULT.value: "CP",
+            HexTypes.LIGHT_REPAIR.value: "LR",
+            HexTypes.HARD_REPAIR.value: "HR",
         }
 
         self.__grid = HexagonalGrid(self.__window, hexaSize=20, grid_width=self.__size, grid_height=self.__size)
@@ -123,11 +124,11 @@ class DisplaySystem:
         self.__displayThread = Thread(target=runDisplay, args=(map, self.__messageQueue))
         self.__displayThread.start()
         self.__tankLabels = {
-            "AT_SPG": "TD",
-            "HEAVY_TANK": "HT",
-            "LIGHT_TANK": "LT",
-            "MEDIUM_TANK": "MT",
-            "SPG": "SPG",
+            TankTypes.AT_SPG.value: "TD",
+            TankTypes.HEAVY_TANK.value: "HT",
+            TankTypes.LIGHT_TANK.value: "LT",
+            TankTypes.MEDIUM_TANK.value: "MT",
+            TankTypes.SPG.value: "SPG",
         }
 
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
