@@ -14,6 +14,7 @@ from Aliases import positionTuple, jsonDict, shootingOptionsList
 import itertools
 from Utils import hexToTuple
 import logging
+from collections import deque
 
 class TankShootingSystem:
     """
@@ -28,6 +29,7 @@ class TankShootingSystem:
         :param eventManager: The EventManager instance to use for triggering events.
         """
         self.__map = map
+        self.__mapSize = self.__map.getSize()
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__eventManager.addHandler(TankMovedEvent, self.onTankMoved)
@@ -402,16 +404,33 @@ class TankShootingSystem:
                     the current position of the tank.
         :return: A list of shooting options, where each option is represented as a position tuple
         """
-        shootingOptions = []
         if shooterPosition is None:
             shooterPosition = self.__tanks[shooterTankId]["position"]
         shootingComponent = self.__tanks[shooterTankId]["shooting"]
 
-        for distance in range(shootingComponent.minAttackRange, shootingComponent.maxAttackRange + 1):
-            for permutation in self.__hexPermutations:
-                shootingOptions.append(tuple(x + y * distance for x, y in zip(shooterPosition, permutation)))
+        visited = set()  # Set to store visited positions
+        visited.add(shooterPosition) 
+        result = []  # List to store valid movement options
+        queue = deque()
+        queue.append(((shooterPosition), 0))
 
-        return shootingOptions
+        # Perform breadth-first search to find all possible moves
+        while len(queue) > 0:
+            currentPosition, currentDistance = queue.popleft()
+
+            if currentDistance >= shootingComponent.minAttackRange:
+                result.append(currentPosition)
+
+            if currentDistance + 1 > shootingComponent.maxAttackRange:
+                continue
+
+            for permutation in self.__hexPermutations:
+                newPosition = tuple(x + y for x, y in zip(currentPosition, permutation))
+                if all(abs(pos) < self.__mapSize for pos in newPosition) and not newPosition in visited:
+                    visited.add(newPosition)
+                    queue.append(((newPosition), currentDistance + 1))
+
+        return result
 
     def __getDirectShootablePositions(self, shooterTankId: str, shooterPosition: positionTuple = None) -> list[positionTuple]:
         """

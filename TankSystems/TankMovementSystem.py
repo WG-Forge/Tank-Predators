@@ -59,11 +59,9 @@ class TankMovementSystem:
         
         # Gets the tanks maximum movement distance
         distance = self.__tankPositions[tankId].speed
-        mapSize = self.__map.getSize()
         startingPosition = self.__tankPositions[tankId].position
 
         visited = set()  # Set to store visited positions
-        visited.add(startingPosition) 
         result = []  # List to store valid movement options
         queue = deque()
         queue.append(((startingPosition), 0))
