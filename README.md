@@ -30,11 +30,21 @@
     - --wait: Wait for user input before exiting.
     
 #### Game map interface:
+
+<b>Hex Types<b/><br/>
 * White colored hexes are empty
 * Green colored hexes are the central base
 * Black colored hexes are obstacles
-* Red colored hexes are catapults
-* LightPink colored hexes are light reapir
-* DarkPink colored hexes are heavy repair
+* Red colored hexes are catapults (CP)
+* LightPink colored hexes are light reapir (LR)
+* DarkPink colored hexes are heavy repair (HR)
 * Other colors are tanks of the teams, each their own color (orange, purple and blue)
+ 
+<b>Tank Types<b/><br/>
+* AT_SPG: "TD",
+* HEAVY_TANK: "HT",
+* LIGHT_TANK: "LT",
+* MEDIUM_TANK: "MT",
+* SPG: "SPG",
+
 
