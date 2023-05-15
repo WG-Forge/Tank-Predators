@@ -29,7 +29,7 @@
     - --observer: Play as an observer.
     - --wait: Wait for user input before exiting.
     
-#### Game map interface:
+## Game map interface:
 
 <b>Hex Types<b/><br/>
 * White colored hexes are empty
