@@ -144,8 +144,8 @@ class Tank(ABC):
                 enemyTankHealth = enemyTank.getComponent("health").currentHealth
                 if enemyTankHealth <= allyTankDamage:
                     destroyableTanks += 1
+                    destructionPoints += enemyTank.getComponent("destructionReward").destructionReward
                 capturePoints += enemyTank.getComponent("capture").capturePoints
-                destructionPoints += enemyTank.getComponent("destructionReward").destructionReward
 
             shootingOptionsInfo[shootingPosition] = {
                 'destroyable': destroyableTanks,
@@ -153,9 +153,9 @@ class Tank(ABC):
                 'destructionPoints': destructionPoints
             }
         # Num destroyable > num capture points
-        shootingPositions = [k for k, v in sorted(shootingOptionsInfo.items(),
-                                                  key=lambda x: (-x[1]["destroyable"], -x[1]["capturePoints"],
-                                                                 -x[1]["destructionPoints"]))]
+        shootingPositions = [(k, v) for k, v in sorted(shootingOptionsInfo.items(),
+                                                  key=lambda x: (-x[1]["capturePoints"] -x[1]["destructionPoints"],
+                                                                 -x[1]["destroyable"]))]
         return shootingPositions[0]
 
     def isHealingNeeded(self, hexType: str):

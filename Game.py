@@ -18,10 +18,11 @@ class Game:
         self.__map = self.__session.getMapInfo()
         self.__gameState = self.__session.getGameState()
         self.__world = World(self.__map, self.__gameState)
-        self.__bot = self.__world.getBot()
         self.__player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
         self.__previousPlayer = None
         self.__turn()
+        self.__bot = self.__world.getBot()
+        self.__bot.currentUser(self.__playerID)
         self.__run()
         self.__session.logout()
 
@@ -33,15 +34,15 @@ class Game:
         self.__player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
 
     def __selfTurn(self):
-        for tankId in self.__player.getPlayerTanks():
-            # perform local player actions
-            action, targetPosition = self.__bot.getAction(tankId)
-            if action == "shoot":
-                self.__session.shoot({"vehicle_id": int(tankId), "target": tupleToHex(targetPosition)})
-                self.__world.shoot(tankId, targetPosition)
-            elif action == "move":
-                self.__session.move({"vehicle_id": int(tankId), "target": tupleToHex(targetPosition)})
-                self.__world.move(tankId, targetPosition)
+        actions = self.__bot.getActions()
+        
+        for action in actions:
+            if action[0] == "shoot":
+                self.__session.shoot({"vehicle_id": int(action[1]), "target": tupleToHex(action[2])})
+                self.__world.shoot(action[1], action[2])
+            elif action[0] == "move":
+                self.__session.move({"vehicle_id": int(action[1]), "target": tupleToHex(action[2])})
+                self.__world.move(action[1], action[2])
 
         self.__session.nextTurn()
 
@@ -110,6 +111,7 @@ class Game:
         #for player in self.__world.getEntityManagementSystem().getPlayers().values():
         #    print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
         print("winner: ", self.__gameState["winner"])
+        print(self.__gameState["win_points"])
         print("------------------------------------")
 
 

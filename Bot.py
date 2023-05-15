@@ -18,10 +18,10 @@ class Bot:
     settings = {
         "CaptureBaseValue": 1,
         "CaptureDistanceMultiplier": 0.95,
-        "CatapultBaseValue": 1,
-        "CatapultDistanceMultiplier": 0.95,
-        "HealthPercentLossMultiplier": 0.1,
-        "PositionTargetsInCaptureMultiplier": 1.01,
+        "HealthPercentLossMultiplier": 0.99,
+        # new postion
+        "RepairPositionBonus": 0.5,
+        "CatapultPositionBonus": 0.5,
     }
 
     def __init__(self, map: Map, eventManager: EventManager, movementSystem, shootingSystem,
@@ -45,6 +45,7 @@ class Bot:
         self.__eventManager = eventManager
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__entityManagementSystem = entityManagementSystem
+        self.__turnOrder = [SPG, LIGHT_TANK, HEAVY_TANK, MEDIUM_TANK, AT_SPG]
 
     def getTanks(self) -> dict[Tank]:
         return self.__tanks
@@ -69,24 +70,6 @@ class Bot:
         return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(
             position1[2] - position2[2])) // 2
     
-    def __initializeCatapults(self, tankPosition):
-        """
-        Initializes each positions value based on distance from a catapult
-        """
-        closest = None
-        closestDistance = math.inf
-        for position, obj in self.__map:
-            if obj == "Catapult" and self.__shootingSystem.catapultAvailable(position):
-                distance = self.__distance(tankPosition, position)
-                if distance < closestDistance:
-                    closest = position
-                    closestDistance = distance
-        if closest:
-            self.__path(closest, self.__catapultMap, Bot.settings["CatapultBaseValue"], Bot.settings["CatapultDistanceMultiplier"])
-            return True
-        return False
-            
-
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
         Event handler. Adds the tank to the bot
@@ -97,6 +80,11 @@ class Bot:
         self.__tanks[tankId] = tankEntity
         ownerId = tankEntity.getComponent("owner").ownerId
         self.__teams.setdefault(ownerId, []).append(tankId)
+
+    def currentUser(self, ownerId: int):
+        self.__currentPlayerTanks = [None] * 5
+        for tankId in self.__teams[ownerId]:
+            self.__currentPlayerTanks[self.__turnOrder.index(type(self.__tanks[tankId]))] = tankId
 
     def __path(self, position: positionTuple, valueMap, baseValue, distanceMultiplier):
         visited = set()  # Set to store visited offsets
@@ -153,21 +141,27 @@ class Bot:
         
         return totalDamages
 
-    def __buildHeuristicMap(self, tank: Tank, tankId: int, moves: list[positionTuple], currentPosition: positionTuple):
-        mapToUse = self.__baseMap
-        
-        if isinstance(tank, (LIGHT_TANK, MEDIUM_TANK)):
-            hasCatapult = tank.getComponent("shooting").rangeBonusEnabled
-            if not hasCatapult:
-                success = self.__initializeCatapults(currentPosition)
-                if success:
-                    mapToUse = self.__catapultMap
+    def __getMinBase(self, currentPosition):
+        minDistance = math.inf
+        for position, obj in self.__map:
+            if obj == "Base":
+                minDistance = min(minDistance, self.__distance(position, currentPosition))
 
-        valueMap = {position: mapToUse[position] for position in moves}
-        valueMap[currentPosition] = self.__baseMap[currentPosition]
+        if minDistance > 0:
+            return 1 / minDistance
+        else:
+            return 2
+                
+
+    def __buildHeuristicMap(self, tank: Tank, tankId: int, moves: list[positionTuple], currentPosition: positionTuple):
+        valueMap = deepcopy(self.__baseMap)
+
+        valueMap = {position: self.__getMinBase(position) for position in moves}
+        valueMap[currentPosition] = self.__getMinBase(currentPosition)
 
         ownerId = tank.getComponent("owner").ownerId
         healthComponent = tank.getComponent("health")
+        hasCatapult = tank.getComponent("shooting").rangeBonusEnabled
         maxHP = healthComponent.maxHealth
         currentHP = healthComponent.currentHealth
 
@@ -175,23 +169,42 @@ class Bot:
 
         totalDamages = self.__getTotalDamages(enemyTanks)
 
-        # adjust values based on potential damage taken
-        for position, totalDamage in totalDamages.items():
-            if position in valueMap:
-                healthValueLost = (1 - ((currentHP - totalDamage) / currentHP)) * Bot.settings["HealthPercentLossMultiplier"]
-                valueMap[position] *= (1 - healthValueLost)
-
-
         enemyPositions = self.__getPositions(enemyTanks)
         # adjust values based on potential enemy targets that are capturing
         for position in valueMap.keys():
             targetablePositions = self.__shootingSystem.getShootablePositions(tankId, position)
-            enemyTargets = 0
+            totalValue = 0
+            obj = self.__map.objectAt(position)
+            if obj == "LightRepair":
+                if isinstance(tank, MEDIUM_TANK):
+                    totalValue += (Bot.settings["RepairPositionBonus"] * (maxHP - currentHP))
+            elif obj == "HardRepair":
+                if isinstance(tank, (AT_SPG, HEAVY_TANK)):
+                    totalValue += (Bot.settings["RepairPositionBonus"] * (maxHP - currentHP))
+            elif obj == "Catapult" and self.__shootingSystem.catapultAvailable(position) and not hasCatapult:
+                totalValue += Bot.settings["CatapultPositionBonus"]
 
-            for targetPosition in targetablePositions:
-                if targetPosition in enemyPositions and self.__map.objectAt(position) == "Base":
-                    enemyTargets += 1
-            valueMap[position] *= (Bot.settings["PositionTargetsInCaptureMultiplier"] ** enemyTargets)
+            for targetablePosition in targetablePositions:
+                if targetablePosition in enemyPositions:
+                    totalValue += 0.01
+                
+                if self.__map.objectAt(targetablePosition) == "Base":
+                    totalValue += 0.01
+
+            valueMap[position] += totalValue
+
+        # adjust values based on potential damage taken
+        for position, totalDamage in totalDamages.items():
+            if position in valueMap:
+                healthPartLeft = ((currentHP - totalDamage) / currentHP)
+                if healthPartLeft <= 0:
+                    obj = self.__map.objectAt(position)
+                    if (obj == "LightRepair" and isinstance(tank, MEDIUM_TANK)) or (obj == "HardRepair" and isinstance(tank, (AT_SPG, HEAVY_TANK))):
+                        continue
+                    valueMap[position] = 0
+                else:
+                    healthValueLost = (1 - healthPartLeft) * Bot.settings["HealthPercentLossMultiplier"]
+                    valueMap[position] *= (1 - healthValueLost)
 
         return valueMap     
 
@@ -213,9 +226,10 @@ class Bot:
 
         totalOptions = len(maxPositions) 
         if totalOptions > 0:
-            return maxPositions[random.randint(0, totalOptions - 1)]
+            chosenPosition = maxPositions[random.randint(0, totalOptions - 1)]
+            return heuristicMap[currentPosition], chosenPosition, heuristicMap[chosenPosition]
         else:
-            return None
+            return heuristicMap[currentPosition], None, None
 
     def __getTileTypesInRange(self, movementOptions: list[positionTuple]) -> set:
         """
@@ -237,19 +251,37 @@ class Bot:
         return (type(allyTank).__name__ == "MEDIUM_TANK" and "LightRepair" in allTileTypes) \
                or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
 
-    def getAction(self, tankId: str) -> tuple[str, positionTuple]:
-        movementOptions = self.__movementSystem.getMovementOptions(tankId)
-        shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
-        tank = self.__tanks[tankId]
-        if len(shootingOptions) > 0:
-            bestShootingOption = tank.getBestTarget(shootingOptions, self.__tanks)
-            return "shoot", bestShootingOption
-        if len(movementOptions) > 0:
-            bestOption = self.__getBestMove(movementOptions, tank, tankId)
-            if bestOption:
-                return "move", bestOption
-            else:
-                return None, None
+    def getActions(self) -> tuple[str, positionTuple]:
+        actions = []
+        shootingOptions = {}
+
+        for tankId in self.__currentPlayerTanks:
+            movementOptions = self.__movementSystem.getMovementOptions(tankId)
+            shootingOptions = self.__shootingSystem.getShootingOptions(tankId)
+            tank = self.__tanks[tankId]
+            selfDestructionReward = tank.getComponent("destructionReward").destructionReward
+            selfCapturePoints = tank.getComponent("capture").capturePoints
+            bestMovementOption = None
+            if len(movementOptions) > 0:
+                currentValue, bestMovementOption, bestOptionValue = self.__getBestMove(movementOptions, tank, tankId)
+            
+            bestShootingOption = None
+            if len(shootingOptions) > 0:
+                bestShootingOption, shotData = tank.getBestTarget(shootingOptions, self.__tanks)
+
+            if bestMovementOption and bestShootingOption:
+                if shotData["destructionPoints"] >= selfDestructionReward or bestOptionValue <= 0:
+                    actions.append(("shoot", tankId, bestShootingOption))
+                elif currentValue > 0 and shotData["destructionPoints"] > 0:
+                    actions.append(("shoot", tankId, bestShootingOption))
+                else:
+                    actions.append(("move", tankId, bestMovementOption))
+            elif bestShootingOption:
+                actions.append(("shoot", tankId, bestShootingOption))
+            elif bestMovementOption:
+                actions.append(("move", tankId, bestMovementOption))
+
+        return actions
 
         # either shooting chosen and no shooting options, or move chosen and no move options
         return "none", (-1, -1, -1)
