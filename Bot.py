@@ -263,7 +263,7 @@ class Bot:
                 capturePointsDenied += self.__tanks[damagedEnemyId].getComponent("capture").capturePoints
                 destructionPoints += self.__tanks[damagedEnemyId].getComponent("destructionReward").destructionReward
 
-        return positionValue + capturePointsDenied ** 1.3 + destructionPoints
+        return positionValue + 3 ** (capturePointsDenied - 1) + destructionPoints * 1.3
     
     def __findBestActionCombination(self):
         bestScore = -math.inf
