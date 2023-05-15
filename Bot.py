@@ -272,7 +272,7 @@ class Bot:
                     bestActions = deepcopy(currentActions)
                 return
 
-            currentTankId = self.__player.getPlayerTanks[currentTankIndex]
+            currentTankId = self.__player.getPlayerTanks()[currentTankIndex]
             possibleMovement = self.__movementSystem.getMovementOptions(currentTankId)
             possibleShoting = self.__shootingSystem.getShootingOptions(currentTankId)
             currentPosition = self.__tanks[currentTankId].getComponent("position").position

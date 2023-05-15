@@ -43,8 +43,8 @@ class HexTypes(Enum):
 
 
 class TankTypes(Enum):
-    AT_SPG = "at_spg"
-    HEAVY_TANK = "heavy_tank"
-    LIGHT_TANK = "light_tank"
-    MEDIUM_TANK = "medium_tank"
-    SPG = "spg"
+    AT_SPG = "AT_SPG"
+    HEAVY_TANK = "HEAVY_TANK"
+    LIGHT_TANK = "LIGHT_TANK"
+    MEDIUM_TANK = "MEDIUM_TANK"
+    SPG = "SPG"

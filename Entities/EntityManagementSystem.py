@@ -63,7 +63,7 @@ class EntityManagementSystem:
         return None
 
     def getOurPlayer(self):
-        return self.__ourPlayer
+        return self.getPlayer(self.__ourPlayer)
 
     def reset(self) -> None:
         self.__players.clear()

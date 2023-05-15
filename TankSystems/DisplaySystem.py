@@ -2,7 +2,7 @@ from Events.Events import TankAddedEvent
 from Events.EventManager import EventManager
 from Map import Map
 from Tanks.Tank import Tank
-from HexGrid import *
+from HexGrid import Tk, HexagonalGrid, cube_to_offset
 from threading import Thread
 from queue import Queue
 from Constants import HexTypes, TankTypes
