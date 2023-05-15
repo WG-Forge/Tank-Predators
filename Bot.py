@@ -1,5 +1,5 @@
 from Map import Map
-from Aliases import positionTuple, shootingOptionsList
+from Aliases import positionTuple
 import math
 import random
 from Events.Events import TankAddedEvent
@@ -13,6 +13,7 @@ from Tanks.SPG import SPG
 from copy import deepcopy
 from collections import deque
 import itertools
+
 
 class Bot:
     settings = {
@@ -46,6 +47,7 @@ class Bot:
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__entityManagementSystem = entityManagementSystem
         self.__turnOrder = [SPG, LIGHT_TANK, HEAVY_TANK, MEDIUM_TANK, AT_SPG]
+        self.__player = entityManagementSystem.getOurPlayer()
 
     def getTanks(self) -> dict[Tank]:
         return self.__tanks
@@ -57,7 +59,8 @@ class Bot:
 
         for position, obj in self.__map:
             if obj == "Base":
-                self.__path(position, self.__baseMap, Bot.settings["CaptureBaseValue"], Bot.settings["CaptureDistanceMultiplier"])
+                self.__path(position, self.__baseMap, Bot.settings["CaptureBaseValue"],
+                            Bot.settings["CaptureDistanceMultiplier"])
 
     def __distance(self, position1: positionTuple, position2: positionTuple) -> int:
         """
@@ -69,7 +72,7 @@ class Bot:
         """
         return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(
             position1[2] - position2[2])) // 2
-    
+
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
         Event handler. Adds the tank to the bot
@@ -81,16 +84,11 @@ class Bot:
         ownerId = tankEntity.getComponent("owner").ownerId
         self.__teams.setdefault(ownerId, []).append(tankId)
 
-    def currentUser(self, ownerId: int):
-        self.__currentPlayerTanks = [None] * 5
-        for tankId in self.__teams[ownerId]:
-            self.__currentPlayerTanks[self.__turnOrder.index(type(self.__tanks[tankId]))] = tankId
-
     def __path(self, position: positionTuple, valueMap, baseValue, distanceMultiplier):
         visited = set()  # Set to store visited offsets
         valueMap[position] = max(baseValue, valueMap.get(position, -math.inf))
         queue = deque()
-        queue.append(((position), 0))
+        queue.append((position, 0))
         visited.add(position)
 
         # Perform breadth-first search to find all possible moves
@@ -109,26 +107,26 @@ class Bot:
 
             for permutation in self.__hexPermutations:
                 newPosition = tuple(x + y for x, y in zip(currentPosition, permutation))
-                if all(abs(pos) < self.__mapSize for pos in newPosition) and not newPosition in visited:
+                if all(abs(pos) < self.__mapSize for pos in newPosition) and newPosition not in visited:
                     visited.add(newPosition)
-                    queue.append(((newPosition), currentDistance + 1))
+                    queue.append((newPosition, currentDistance + 1))
 
     def __getEnemyTanks(self, allyOwnerId: int):
         enemyTanks = []
         for ownerId, tanks in self.__teams.items():
             if ownerId != allyOwnerId:
                 enemyTanks.extend(tanks)
-        
+
         return enemyTanks
-    
+
     def __getPositions(self, tanks: list[int]):
         positions = []
 
         for tankId in tanks:
             positions.append(self.__tanks[tankId].getComponent("position").position)
-        
+
         return positions
-    
+
     def __getTotalDamages(self, tanks: list[int]):
         totalDamages = {}
 
@@ -138,7 +136,7 @@ class Bot:
 
             for position in targetablePositions:
                 totalDamages[position] = totalDamages.get(position, 0) + damage
-        
+
         return totalDamages
 
     def __getMinBase(self, currentPosition):
@@ -151,7 +149,7 @@ class Bot:
             return 1 / minDistance
         else:
             return 2
-                
+
     # TODO: Modify to take information from backtracking to remove dead enemies from enemyTanks (if any)
     def __buildHeuristicMap(self, tank, tankId, movementOptions, currentPosition):
         tank = self.__tanks[tankId]
@@ -195,9 +193,10 @@ class Bot:
         #             healthValueLost = (1 - healthPartLeft) * Bot.settings["HealthPercentLossMultiplier"]
         #             valueMap[position] *= (1 - healthValueLost)
 
-        return valueMap     
+        return valueMap
 
-    # TODO: Modify getBestMove to provide multiple best moves since we have enough time for simulating
+        # TODO: Modify getBestMove to provide multiple best moves since we have enough time for simulating
+
     def __getBestMove(self, moves: list[positionTuple], tankId: int) -> list[positionTuple]:
         tank = self.__tanks[tankId]
         currentPosition = tank.getComponent("position").position
@@ -214,7 +213,7 @@ class Bot:
             elif value == maxValue:
                 maxPositions.append(move)
 
-        totalOptions = len(maxPositions) 
+        totalOptions = len(maxPositions)
         if totalOptions > 0:
             chosenPosition = maxPositions[random.randint(0, totalOptions - 1)]
             return heuristicMap[currentPosition], chosenPosition, heuristicMap[chosenPosition]
@@ -253,7 +252,7 @@ class Bot:
                 score += self.__tanks[damagedEnemyId].getComponent("destructionReward").destructionReward
 
         return score
-    
+
     def __findBestActionCombination(self):
         bestScore = -math.inf
         bestActions = []
@@ -271,16 +270,16 @@ class Bot:
                     bestActions = deepcopy(currentActions)
                 return
 
-            currentTankId = self.__currentPlayerTanks[currentTankIndex]
+            currentTankId = self.__player.getPlayerTanks[currentTankIndex]
             possibleMovement = self.__movementSystem.getMovementOptions(currentTankId)
             possibleShoting = self.__shootingSystem.getShootingOptions(currentTankId)
             currentPosition = self.__tanks[currentTankId].getComponent("position").position
-            
+
             # TODO: Modify getBestMove to provide multiple best moves since we have enough time for simulating
             # for targetPosition in possibleMovement:
             currentValue, targetPosition, targetValue = self.__getBestMove(possibleMovement, currentTankId)
             if targetPosition:
-            # if valueMap[targetPosition] > valueMap[currentPosition]:
+                # if valueMap[targetPosition] > valueMap[currentPosition]:
                 currentActions.append(("move", currentTankId, targetPosition))
                 self.__movementSystem.move(currentTankId, targetPosition)
                 movement[currentTankId] = [currentPosition, targetPosition]
@@ -307,7 +306,7 @@ class Bot:
                     currentActions.append(("shoot", currentTankId, targetPosition))
                     backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemiesBacktrack)
                     currentActions.pop()
-            
+
             backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
 
         backtrack([], 0, {}, {})
