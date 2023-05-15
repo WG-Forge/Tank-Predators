@@ -4,12 +4,13 @@ from Entities.Player import Player
 
 
 class EntityManagementSystem:
-    __slots__ = ("__players", "__observers", "__tankManager")
+    __slots__ = ("__players", "__observers", "__tankManager", "__ourPlayer")
 
-    def __init__(self, gameState: jsonDict):
+    def __init__(self, gameState: jsonDict, playerId: int):
         self.__players = {}  # dict[playerIDs, playerObject]
         self.__observers = {}  # dict[observerIDs, observerObject]
         self.__initAllEntities(gameState)
+        self.__ourPlayer = playerId
 
     def __initAllEntities(self, gameState: jsonDict):
         for player in gameState["players"]:
@@ -60,6 +61,9 @@ class EntityManagementSystem:
         if observerId in self.__observers:
             return self.__players[observerId]
         return None
+
+    def getOurPlayer(self):
+        return self.getPlayer(self.__ourPlayer)
 
     def reset(self) -> None:
         self.__players.clear()

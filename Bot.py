@@ -1,5 +1,5 @@
 from Map import Map
-from Aliases import positionTuple, shootingOptionsList
+from Aliases import positionTuple
 import math
 import random
 from Events.Events import TankAddedEvent
@@ -12,8 +12,10 @@ from Tanks.MEDIUM_TANK import MEDIUM_TANK
 from Tanks.SPG import SPG
 from copy import deepcopy
 from collections import deque
+from Constants import HexTypes
 import itertools
 import heapq
+
 
 class Bot:
     settings = {
@@ -33,7 +35,8 @@ class Bot:
         :param map: An instance of the Map that holds static game information.
         """
         self.__map = map
-        self.__canMoveTo = {"Empty", "Base", "Catapult", "LightRepair", "HardRepair"}
+        self.__canMoveTo = {HexTypes.EMPTY.value, HexTypes.BASE.value, HexTypes.CATAPULT.value,
+                            HexTypes.LIGHT_REPAIR.value, HexTypes.HARD_REPAIR.value}
         self.__mapSize = self.__map.getSize()
         self.__baseMap = {}
         self.__catapultMap = {}
@@ -47,6 +50,7 @@ class Bot:
         self.__eventManager.addHandler(TankAddedEvent, self.onTankAdded)
         self.__entityManagementSystem = entityManagementSystem
         self.__turnOrder = [SPG, LIGHT_TANK, HEAVY_TANK, MEDIUM_TANK, AT_SPG]
+        self.__player = entityManagementSystem.getOurPlayer()
 
     def getTanks(self) -> dict[Tank]:
         return self.__tanks
@@ -57,8 +61,9 @@ class Bot:
         """
 
         for position, obj in self.__map:
-            if obj == "Base":
-                self.__path(position, self.__baseMap, Bot.settings["CaptureBaseValue"], Bot.settings["CaptureDistanceMultiplier"])
+            if obj == HexTypes.BASE.value:
+                self.__path(position, self.__baseMap, Bot.settings["CaptureBaseValue"],
+                            Bot.settings["CaptureDistanceMultiplier"])
 
     def __distance(self, position1: positionTuple, position2: positionTuple) -> int:
         """
@@ -70,7 +75,7 @@ class Bot:
         """
         return (abs(position1[0] - position2[0]) + abs(position1[1] - position2[1]) + abs(
             position1[2] - position2[2])) // 2
-    
+
     def onTankAdded(self, tankId: str, tankEntity: Tank) -> None:
         """
         Event handler. Adds the tank to the bot
@@ -82,16 +87,11 @@ class Bot:
         ownerId = tankEntity.getComponent("owner").ownerId
         self.__teams.setdefault(ownerId, []).append(tankId)
 
-    def currentUser(self, ownerId: int):
-        self.__currentPlayerTanks = [None] * 5
-        for tankId in self.__teams[ownerId]:
-            self.__currentPlayerTanks[self.__turnOrder.index(type(self.__tanks[tankId]))] = tankId
-
     def __path(self, position: positionTuple, valueMap, baseValue, distanceMultiplier):
         visited = set()  # Set to store visited offsets
         valueMap[position] = max(baseValue, valueMap.get(position, -math.inf))
         queue = deque()
-        queue.append(((position), 0))
+        queue.append((position, 0))
         visited.add(position)
 
         # Perform breadth-first search to find all possible moves
@@ -110,9 +110,9 @@ class Bot:
 
             for permutation in self.__hexPermutations:
                 newPosition = tuple(x + y for x, y in zip(currentPosition, permutation))
-                if all(abs(pos) < self.__mapSize for pos in newPosition) and not newPosition in visited:
+                if all(abs(pos) < self.__mapSize for pos in newPosition) and newPosition not in visited:
                     visited.add(newPosition)
-                    queue.append(((newPosition), currentDistance + 1))
+                    queue.append((newPosition, currentDistance + 1))
 
     def __getEnemyTanks(self, allyOwnerId: int, damagedEnemies):
         enemyTanks = []
@@ -133,15 +133,15 @@ class Bot:
                     enemyTanks.append(enemyList)
                 
         return enemyTanks
-    
+
     def __getPositions(self, tanks: list[int]):
         positions = []
 
         for tankId in tanks:
             positions.append(self.__tanks[tankId].getComponent("position").position)
-        
+
         return positions
-    
+
     def __getTotalDamages(self, tanks: list[int]):
         totalDamages = {}
 
@@ -151,13 +151,13 @@ class Bot:
 
             for position in targetablePositions:
                 totalDamages[position] = totalDamages.get(position, 0) + damage
-        
+
         return totalDamages
 
     def __getMinBase(self, currentPosition):
         minDistance = math.inf
         for position, obj in self.__map:
-            if obj == "Base":
+            if obj == HexTypes.BASE.value:
                 minDistance = min(minDistance, self.__distance(position, currentPosition))
 
         if minDistance > 0:
@@ -181,13 +181,13 @@ class Bot:
         for position in valueMap.keys():
             totalValue = 0
             obj = self.__map.objectAt(position)
-            if obj == "LightRepair":
+            if obj == HexTypes.LIGHT_REPAIR.value:
                 if isinstance(tank, MEDIUM_TANK):
                     totalValue += (Bot.settings["RepairPositionBonus"] * (maxHP - currentHP))
-            elif obj == "HardRepair":
+            elif obj == HexTypes.HARD_REPAIR.value:
                 if isinstance(tank, (AT_SPG, HEAVY_TANK)):
                     totalValue += (Bot.settings["RepairPositionBonus"] * (maxHP - currentHP))
-            elif obj == "Catapult" and self.__shootingSystem.catapultAvailable(position) and not hasCatapult:
+            elif obj == HexTypes.CATAPULT.value and self.__shootingSystem.catapultAvailable(position) and not hasCatapult:
                 totalValue += Bot.settings["CatapultPositionBonus"]
 
             valueMap[position] += totalValue
@@ -246,8 +246,8 @@ class Bot:
         :param: allTileTypes tile types that are reachable
         :return: true if healing is possible in one move, false otherwise
         """
-        return (type(allyTank).__name__ == "MEDIUM_TANK" and "LightRepair" in allTileTypes) \
-               or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and "HeavyRepair" in allTileTypes)
+        return (type(allyTank).__name__ == "MEDIUM_TANK" and HexTypes.LIGHT_REPAIR.value in allTileTypes) \
+               or (type(allyTank).__name__ in ("HEAVY_TANK", "AT_SPG") and HexTypes.HARD_REPAIR.value in allTileTypes)
 
     # TODO: Improve evaluation
     def __evaluateCurrentActions(self, currentActions, movement, damagedEnemies):
@@ -281,7 +281,7 @@ class Bot:
                     bestActions = deepcopy(currentActions)
                 return
 
-            currentTankId = self.__currentPlayerTanks[currentTankIndex]
+            currentTankId = self.__player.getPlayerTanks()[currentTankIndex]
             possibleMovement = self.__movementSystem.getMovementOptions(currentTankId)
             possibleShoting = self.__shootingSystem.getShootingOptions(currentTankId)
             currentPosition = self.__tanks[currentTankId].getComponent("position").position
@@ -314,7 +314,7 @@ class Bot:
                     currentActions.append(("shoot", currentTankId, targetPosition))
                     backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemiesBacktrack)
                     currentActions.pop()
-            
+
             backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
 
         backtrack([], 0, {}, {})

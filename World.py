@@ -14,19 +14,22 @@ from Aliases import jsonDict, positionTuple
 from Bot import Bot
 from Entities.EntityManagementSystem import EntityManagementSystem
 
-class World():
-    def __init__(self, map: jsonDict, gameState: jsonDict) -> None:
+
+class World:
+    def __init__(self, map: jsonDict, gameState: jsonDict, playerId: int) -> None:
         """
         Initializes the game world.
 
         :param map: A dictionary containing the map data.
         :param gameState: A dictionary containing the game state data.
         """
+        self.__playerId = playerId
         self.__map = Map(map)
         self.__initializeEventManager()
         self.__tankManager = TankManager(self.__eventManager)
         self.__initializeSystems(gameState)
-        self.__bot = Bot(self.__map, self.__eventManager, self.__movementSystem, self.__shootingSystem, self.__entityManagementSystem)
+        self.__bot = Bot(self.__map, self.__eventManager, self.__movementSystem, self.__shootingSystem,
+                         self.__entityManagementSystem)
 
     def __initializeEventManager(self) -> None:
         """
@@ -47,12 +50,13 @@ class World():
         """
         self.__movementSystem = TankMovementSystem(self.__map, self.__eventManager)
         self.__displaySystem = DisplaySystem(self.__map, self.__eventManager)
-        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, gameState["attack_matrix"], gameState["catapult_usage"])
+        self.__shootingSystem = TankShootingSystem(self.__map, self.__eventManager, gameState["attack_matrix"],
+                                                   gameState["catapult_usage"])
         self.__healthSystem = TankHealthSystem(self.__eventManager)
         self.__respawnSystem = TankRespawnSystem(self.__eventManager)
         self.__positionBonusSystem = PositionBonusSystem(self.__map, self.__eventManager)
         self.__baseCaptureSystem = BaseCaptureSystem(self.__map, self.__eventManager)
-        self.__entityManagementSystem = EntityManagementSystem(gameState)
+        self.__entityManagementSystem = EntityManagementSystem(gameState, self.__playerId)
 
     def resetSystems(self, gameState: jsonDict) -> None:
         """
@@ -118,7 +122,7 @@ class World():
         :return: The game's bot.
         """
         return self.__bot
-    
+
     def turn(self, gameState: jsonDict) -> None:
         """
         Performs the turn logic for the game world.

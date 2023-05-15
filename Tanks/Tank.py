@@ -125,9 +125,7 @@ class Tank(ABC):
     def getBestTarget(self, shootingOptions: shootingOptionsList, tanks):
         """
         Shooting by priorities:
-        1. Tank that can be destroyed and has most capture points
-        2. Tank that can be destroyed
-        3. Tank that has the most capture points
+        can be destroyed > capture points > destruction points
         :param shootingOptions: dict of all possible hexes at which tank can shoot and tanks it will hit
         :param tanks: list of all tanks on the map
         :return: position of hex that will hit most optimal target

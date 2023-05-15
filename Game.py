@@ -17,12 +17,11 @@ class Game:
         # Get static map data
         self.__map = self.__session.getMapInfo()
         self.__gameState = self.__session.getGameState()
-        self.__world = World(self.__map, self.__gameState)
+        self.__world = World(self.__map, self.__gameState, self.__playerID)
         self.__player = self.__world.getEntityManagementSystem().getPlayer(self.__playerID)
         self.__previousPlayer = None
         self.__turn()
         self.__bot = self.__world.getBot()
-        self.__bot.currentUser(self.__playerID)
         self.__run()
         self.__session.logout()
 
@@ -108,8 +107,8 @@ class Game:
                 self.__session.nextTurn()
                 self.__reset()
         print("playerID: " + str(self.__player.getId()))
-        #for player in self.__world.getEntityManagementSystem().getPlayers().values():
-        #    print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
+        for player in self.__world.getEntityManagementSystem().getPlayers().values():
+            print("ID:" + str(player.getId()) + ", capturePoints:" + str(player.getCapturePoints()) + ", destructionPoints:" + str(player.getDestructionPoints()))
         print("winner: ", self.__gameState["winner"])
         print(self.__gameState["win_points"])
         print("------------------------------------")

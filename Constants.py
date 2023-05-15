@@ -1,8 +1,6 @@
-from enum import IntEnum
+from enum import IntEnum, Enum
 
-
-class GameConstants(IntEnum):
-    NUM_TANKS = 5
+NUM_TANKS = 5  # number of each player tanks
 
 
 class Result(IntEnum):
@@ -33,3 +31,20 @@ class Action(IntEnum):
     CHAT = 100
     MOVE = 101
     SHOOT = 102
+
+
+class HexTypes(Enum):
+    EMPTY = "Empty"
+    BASE = "Base"
+    OBSTACLE = "Obstacle"
+    LIGHT_REPAIR = "LightRepair"
+    HARD_REPAIR = "HardRepair"
+    CATAPULT = "Catapult"
+
+
+class TankTypes(Enum):
+    AT_SPG = "AT_SPG"
+    HEAVY_TANK = "HEAVY_TANK"
+    LIGHT_TANK = "LIGHT_TANK"
+    MEDIUM_TANK = "MEDIUM_TANK"
+    SPG = "SPG"
