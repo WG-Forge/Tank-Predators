@@ -171,6 +171,7 @@ class Bot:
         valueMap[currentPosition] = self.__getMinBase(currentPosition)
         ownerId = tank.getComponent("owner").ownerId
         healthComponent = tank.getComponent("health")
+        selfDestructionReward = tank.getComponent("destructionReward").destructionReward
         hasCatapult = tank.getComponent("shooting").rangeBonusEnabled
         maxHP = healthComponent.maxHealth
         currentHP = healthComponent.currentHealth
@@ -206,7 +207,7 @@ class Bot:
                         obj = self.__map.objectAt(position)
                         if (obj == "LightRepair" and isinstance(tank, MEDIUM_TANK)) or (obj == "HardRepair" and isinstance(tank, (AT_SPG, HEAVY_TANK))):
                             continue
-                        damageValues[currentIndex][position] = 0
+                        damageValues[currentIndex][position] = -selfDestructionReward
                     else:
                         healthValueLost = (1 - healthPartLeft) * Bot.settings["HealthPercentLossMultiplier"]
                         damageValues[currentIndex][position] = (1 - healthValueLost)
