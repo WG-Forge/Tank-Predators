@@ -40,7 +40,7 @@ class Bot:
         self.__catapultMap = {}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__teams = {}
-        # self.__initializeMap()
+        self.__initializeMap()
         self.__movementSystem = movementSystem
         self.__shootingSystem = shootingSystem
         self.__tanks = {}
@@ -132,7 +132,7 @@ class Bot:
                     enemyTanks[0].extend(enemyList)
                 else:
                     enemyTanks.append(enemyList)
-                
+
         return enemyTanks
 
     def __getPositions(self, tanks: list[int]):
@@ -154,12 +154,13 @@ class Bot:
                 totalDamages[position] = totalDamages.get(position, 0) + damage
 
         return totalDamages
-                
+
     def __buildHeuristicMap(self, tank, tankId, movementOptions, currentPosition, damagedEnemies):
         tank = self.__tanks[tankId]
         center = (0, 0, 0)
-        valueMap = {position: self.__baseMap.get(position, 1 / (self.__distance(position, center) + 1)) for position in movementOptions}
-        valueMap[currentPosition] = self.__baseMap.get(currentPosition, 1 / (self.__distance(currentPosition, center) + 1))
+        valueMap = {position: self.__baseMap.get(position, self.__distance(position, center)) for position in
+                    movementOptions}
+        valueMap[currentPosition] = self.__baseMap.get(currentPosition, self.__distance(currentPosition, center))
         ownerId = tank.getComponent("owner").ownerId
         healthComponent = tank.getComponent("health")
         selfDestructionReward = tank.getComponent("destructionReward").destructionReward
@@ -179,7 +180,8 @@ class Bot:
             elif obj == HexTypes.HARD_REPAIR.value:
                 if isinstance(tank, (AT_SPG, HEAVY_TANK)):
                     totalValue += (Bot.settings["RepairPositionBonus"] * (maxHP - currentHP))
-            elif obj == HexTypes.CATAPULT.value and self.__shootingSystem.catapultAvailable(position) and not hasCatapult:
+            elif obj == HexTypes.CATAPULT.value and self.__shootingSystem.catapultAvailable(
+                    position) and not hasCatapult:
                 totalValue += Bot.settings["CatapultPositionBonus"]
 
             valueMap[position] += totalValue
@@ -191,12 +193,13 @@ class Bot:
             damageValues.append({})
 
             totalDamages = self.__getTotalDamages(enemyTankList)
-            for position in valueMap.keys():
-                if position in totalDamages:
-                    healthPartLeft = ((currentHP - totalDamages[position]) / currentHP)
+            for position, totalDamage in totalDamages.items():
+                if position in valueMap:
+                    healthPartLeft = ((currentHP - totalDamage) / currentHP)
                     if healthPartLeft <= 0:
                         obj = self.__map.objectAt(position)
-                        if (obj == "LightRepair" and isinstance(tank, MEDIUM_TANK)) or (obj == "HardRepair" and isinstance(tank, (AT_SPG, HEAVY_TANK))):
+                        if (obj == "LightRepair" and isinstance(tank, MEDIUM_TANK)) or (
+                                obj == "HardRepair" and isinstance(tank, (AT_SPG, HEAVY_TANK))):
                             continue
                         damageValues[currentIndex][position] = -selfDestructionReward
                     else:
@@ -205,21 +208,21 @@ class Bot:
 
         if len(damageValues) > 1:
             for position, value in damageValues[1].items():
-                    if value < damageValues[0].get(position, math.inf):
-                        damageValues[0][position] = value
+                if value < damageValues[0].get(position, math.inf):
+                    damageValues[0][position] = value
 
         if len(damageValues) > 0:
             for key, value in damageValues[0].items():
                 valueMap[key] *= value
 
-        return valueMap     
+        return valueMap
 
     def __getBestMove(self, moves: list[positionTuple], tankId: int, damagedEnemies) -> list[positionTuple]:
         tank = self.__tanks[tankId]
         currentPosition = tank.getComponent("position").position
         heuristicMap = self.__buildHeuristicMap(tank, tankId, moves, currentPosition, damagedEnemies)
-
-        return [k for k, v in heapq.nlargest(2, heuristicMap.items(), key=lambda item: item[1])]
+        heuristicMap.pop(currentPosition)
+        return [k for k, v in heapq.nlargest(1, heuristicMap.items(), key=lambda item: item[1])]
 
     def __getTileTypesInRange(self, movementOptions: list[positionTuple]) -> set:
         """
@@ -245,7 +248,9 @@ class Bot:
     def __evaluateCurrentActions(self, currentActions, movement, damagedEnemies):
         positionValue = 0
         for tankId, positionChange in movement.items():
-            positionValue += self.__buildHeuristicMap(self.__tanks[tankId], tankId, [], positionChange[1], damagedEnemies)[positionChange[1]]
+            positionValue += \
+            self.__buildHeuristicMap(self.__tanks[tankId], tankId, [], positionChange[1], damagedEnemies)[
+                positionChange[1]]
 
         capturePointsDenied = 0
         destructionPoints = 0
@@ -258,7 +263,7 @@ class Bot:
                 destructionPoints += self.__tanks[damagedEnemyId].getComponent("destructionReward").destructionReward
 
         return positionValue + 3 ** (capturePointsDenied - 1) + destructionPoints * 1.3 + totalDamage * 0.05
-    
+
     def __findBestActionCombination(self):
         bestScore = -math.inf
         bestActions = []
@@ -280,19 +285,16 @@ class Bot:
             possibleMovement = self.__movementSystem.getMovementOptions(currentTankId)
             possibleShoting = self.__shootingSystem.getShootingOptions(currentTankId)
             currentPosition = self.__tanks[currentTankId].getComponent("position").position
-            
+
             targetPositions = self.__getBestMove(possibleMovement, currentTankId, damagedEnemies)
             for targetPosition in targetPositions:
-                if targetPosition != currentPosition:
-                    currentActions.append(("move", currentTankId, targetPosition))
-                    self.__movementSystem.move(currentTankId, targetPosition)
-                    movement[currentTankId] = [currentPosition, targetPosition]
-                    backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
-                    self.__movementSystem.move(currentTankId, currentPosition)
-                    del movement[currentTankId]
-                    currentActions.pop()
-                else:
-                    backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
+                currentActions.append(("move", currentTankId, targetPosition))
+                self.__movementSystem.move(currentTankId, targetPosition)
+                movement[currentTankId] = [currentPosition, targetPosition]
+                backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
+                self.__movementSystem.move(currentTankId, currentPosition)
+                del movement[currentTankId]
+                currentActions.pop()
 
             currentDamage = self.__tanks[currentTankId].getComponent("shooting").damage
             for targetPosition, targets in possibleShoting:
@@ -312,6 +314,8 @@ class Bot:
                     currentActions.append(("shoot", currentTankId, targetPosition))
                     backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemiesBacktrack)
                     currentActions.pop()
+
+            backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
 
         backtrack([], 0, {}, {})
 
