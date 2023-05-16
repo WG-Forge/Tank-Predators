@@ -218,8 +218,8 @@ class Bot:
         tank = self.__tanks[tankId]
         currentPosition = tank.getComponent("position").position
         heuristicMap = self.__buildHeuristicMap(tank, tankId, moves, currentPosition, damagedEnemies)
-        heuristicMap.pop(currentPosition)
-        return [k for k, v in heapq.nlargest(1, heuristicMap.items(), key=lambda item: item[1])]
+
+        return [k for k, v in heapq.nlargest(2, heuristicMap.items(), key=lambda item: item[1])]
 
     def __getTileTypesInRange(self, movementOptions: list[positionTuple]) -> set:
         """
@@ -283,13 +283,16 @@ class Bot:
             
             targetPositions = self.__getBestMove(possibleMovement, currentTankId, damagedEnemies)
             for targetPosition in targetPositions:
-                currentActions.append(("move", currentTankId, targetPosition))
-                self.__movementSystem.move(currentTankId, targetPosition)
-                movement[currentTankId] = [currentPosition, targetPosition]
-                backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
-                self.__movementSystem.move(currentTankId, currentPosition)
-                del movement[currentTankId]
-                currentActions.pop()
+                if targetPosition != currentPosition:
+                    currentActions.append(("move", currentTankId, targetPosition))
+                    self.__movementSystem.move(currentTankId, targetPosition)
+                    movement[currentTankId] = [currentPosition, targetPosition]
+                    backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
+                    self.__movementSystem.move(currentTankId, currentPosition)
+                    del movement[currentTankId]
+                    currentActions.pop()
+                else:
+                    backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
 
             currentDamage = self.__tanks[currentTankId].getComponent("shooting").damage
             for targetPosition, targets in possibleShoting:
@@ -309,8 +312,6 @@ class Bot:
                     currentActions.append(("shoot", currentTankId, targetPosition))
                     backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemiesBacktrack)
                     currentActions.pop()
-
-            backtrack(currentActions, currentTankIndex + 1, movement, damagedEnemies)
 
         backtrack([], 0, {}, {})
 
