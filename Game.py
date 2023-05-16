@@ -48,18 +48,7 @@ class Game:
     def __otherTurn(self):
         # skip turn since it's not our
         self.__session.nextTurn()
-        # perform other player actions
-        gameActions = self.__session.getGameActions()
-
-        for action in gameActions["actions"]:
-            if self.__player is not None and action["player_id"] == self.__player.getId():
-                break
-            if action["action_type"] == Action.MOVE:
-                actionData = action["data"]
-                self.__world.move(str(actionData["vehicle_id"]), hexToTuple(actionData["target"]))
-            elif action["action_type"] == Action.SHOOT:
-                actionData = action["data"]
-                self.__world.shoot(str(actionData["vehicle_id"]), hexToTuple(actionData["target"]))
+        self.__reset()
 
     def __turn(self) -> None:
         self.__world.addMissingTanks(self.__gameState)
@@ -96,7 +85,6 @@ class Game:
 
                 self.__gameState = self.__session.getGameState()
                 self.__turn()
-                self.__round()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
