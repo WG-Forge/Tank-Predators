@@ -1,8 +1,8 @@
 from Tanks.Components.DirectShootingComponent import DirectShootingComponent
 from Tanks.Tank import Tank
-from Aliases import positionTuple
-from Aliases import jsonDict
+from Aliases import jsonDict, shootingOptionsList
 import Tanks.Settings as Settings
+
 
 class AT_SPG(Tank):
     __slots__ = ()
@@ -14,7 +14,7 @@ class AT_SPG(Tank):
         :param tankData: A dictionary containing all the data of the tank entity.
         """
         super().__init__(tankData, Settings.TANKS["AT_SPG"])
-  
+
     def _initializeShooting(self, settings: jsonDict, shootingRangeBonus: bool) -> None:
         """
         Overrides initialization of the shooting component for the AT-SPG tank.
@@ -24,4 +24,32 @@ class AT_SPG(Tank):
             - "damage": An integer representing the damage dealt by the tank's attacks.
         :param rangeBonusEnabled: Indicates whether the attack range bonus is enabled or not.
         """
-        self._setComponent("shooting", DirectShootingComponent(settings["maxAttackDistance"], settings["damage"], shootingRangeBonus))
+        self._setComponent("shooting", DirectShootingComponent(settings["maxAttackDistance"], settings["damage"],
+                                                               shootingRangeBonus))
+
+    def getBestTarget(self, shootingOptions: shootingOptionsList, tanks):
+        shootingOptionsInfo = dict()
+        allyTankDamage = self.getComponent("shooting").damage
+
+        for shootingPosition, enemyTankIds in shootingOptions:
+            destroyableTanks = 0
+            capturePoints = 0
+            destructionPoints = 0
+            for enemyTankId in enemyTankIds:
+                enemyTank = tanks[enemyTankId]
+                enemyTankHealth = enemyTank.getComponent("health").currentHealth
+                if enemyTankHealth <= allyTankDamage:
+                    destroyableTanks += 1
+                    destructionPoints += enemyTank.getComponent("destructionReward").destructionReward
+                capturePoints += enemyTank.getComponent("capture").capturePoints
+            shootingOptionsInfo[shootingPosition] = {
+                'destroyable': destroyableTanks,
+                'capturePoints': capturePoints,
+                'numberOfTanks': len(enemyTankIds),
+                'destructionPoints': destructionPoints
+            }
+        # Num destroyable > num attacking > num capture points
+        shootingPositions = [(k, v) for k, v in sorted(shootingOptionsInfo.items(),
+                                                  key=lambda x: (-x[1]["capturePoints"] -x[1]["destructionPoints"],
+                                                                 -x[1]["destroyable"], -x[1]["numberOfTanks"]))]
+        return shootingPositions[0]

@@ -1,6 +1,7 @@
 from Aliases import jsonDict
 from Aliases import positionTuple
-from Utils import HexToTuple
+from Utils import hexToTuple
+from Constants import HexTypes
 
 class Map:
     def __init__(self, mapData: jsonDict) -> None:
@@ -21,20 +22,19 @@ class Map:
         :param base: A dictionary containing the map content for the map.
         '''
         for baseHex in mapContent["base"]:
-            self.__map[HexToTuple(baseHex)] = "Base"
+            self.__map[hexToTuple(baseHex)] = HexTypes.BASE.value
 
         for obstacleHex in mapContent["obstacle"]:
-            self.__map[HexToTuple(obstacleHex)] = "Obstacle"
+            self.__map[hexToTuple(obstacleHex)] = HexTypes.OBSTACLE.value
 
         for catapultHex in mapContent["catapult"]:
-            self.__map[HexToTuple(catapultHex)] = "Catapult"    
+            self.__map[hexToTuple(catapultHex)] = HexTypes.CATAPULT.value
 
         for lightRepairHex in mapContent["light_repair"]:
-            self.__map[HexToTuple(lightRepairHex)] = "LightRepair"
+            self.__map[hexToTuple(lightRepairHex)] = HexTypes.LIGHT_REPAIR.value
 
         for hardRepairHex in mapContent["hard_repair"]:
-            self.__map[HexToTuple(hardRepairHex)] = "HardRepair"
-
+            self.__map[hexToTuple(hardRepairHex)] = HexTypes.HARD_REPAIR.value
 
     def getSize(self) -> int:
         '''
@@ -44,7 +44,7 @@ class Map:
         '''
 
         return self.__size
-    
+
     def getName(self) -> str:
         '''
         Returns the name of the map.
@@ -52,7 +52,7 @@ class Map:
         :return: A string representing the name of the map.
         '''
         return self.__name
-    
+
     def objectAt(self, position: positionTuple) -> str:
         '''
         Returns the name of the object located at the given position.

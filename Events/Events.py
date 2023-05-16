@@ -1,5 +1,7 @@
 from Events.Event import Event
 
+# all events are stored here
+
 class TankAddedEvent(Event):
     pass
 

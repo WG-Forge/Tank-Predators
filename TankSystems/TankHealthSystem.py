@@ -53,6 +53,11 @@ class TankHealthSystem:
                 self.__eventManager.triggerEvent(TankDestroyedEvent, tankId)
 
     def __heal(self, healthComponent) -> None:
+        """
+        Heals a healthComponent object to its maximum health.
+
+        :param healthComponent: The healthComponent object to heal.
+        """
         healthComponent.currentHealth = healthComponent.maxHealth        
         
     def onTankRespawned(self, tankId: str) -> None:
@@ -78,3 +83,8 @@ class TankHealthSystem:
             logging.debug(f"Repair used: TankId:{tankId}")
             self.__heal(healthComponent)
 
+    def reset(self) -> None:
+        """
+        Resets the system to it's initial state.
+        """
+        self.__tanks.clear()

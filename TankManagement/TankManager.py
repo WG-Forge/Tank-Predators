@@ -45,3 +45,9 @@ class TankManager:
         :return: The Tank instance with the given ID.
         """
         return self.__tanks[tankId]
+    
+    def reset(self) -> None:
+        """
+        Resets the manager to it's initial state
+        """
+        self.__tanks.clear()

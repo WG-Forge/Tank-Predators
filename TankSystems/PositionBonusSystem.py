@@ -42,7 +42,12 @@ class PositionBonusSystem:
                 "tankType": type(tankEntity),
             }
 
-    def turn(self):
+    def turn(self) -> None:
+        """
+        Performs the turn logic for the system. 
+        
+        Checks if each tank is on a bonus tile and triggers the appropriate event.
+        """
         for tankId, tankData in self.__tanks.items():
             obj = self.__map.objectAt(tankData["position"].position)
             tankType = tankData["tankType"]
@@ -51,3 +56,9 @@ class PositionBonusSystem:
                 self.__eventManager.triggerEvent(TankRepairedEvent, tankId)
             elif obj == "Catapult":
                  self.__eventManager.triggerEvent(TankRangeBonusEvent, tankId)
+
+    def reset(self) -> None:
+        """
+        Resets the system to it's initial state.
+        """
+        self.__tanks.clear()

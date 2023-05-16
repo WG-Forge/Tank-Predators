@@ -5,15 +5,17 @@ from Tanks.Components.DestructionRewardComponent import DestructionRewardCompone
 from Tanks.Components.BaseCaptureComponent import BaseCaptureComponent
 from Tanks.Components.CurvedShootingComponent import CurvedShootingComponent
 from Tanks.Components.OwnerComponent import OwnerComponent
-from Aliases import positionTuple
+from Aliases import positionTuple, shootingOptionsList
 from Aliases import jsonDict
-from Utils import HexToTuple
+from Utils import hexToTuple
+
 
 class Tank(ABC):
     """
     Abstract base class for all tank entities in the game.
     """
     __slots__ = ("__components",)
+
     def __init__(self, tankData: jsonDict, settings: jsonDict) -> None:
         """
         Initializes a new instance of the Tank class.
@@ -23,8 +25,8 @@ class Tank(ABC):
         """
         self.__components = {}
 
-        spawnPosition = HexToTuple(tankData["spawn_position"])
-        position = HexToTuple(tankData["position"])
+        spawnPosition = hexToTuple(tankData["spawn_position"])
+        position = hexToTuple(tankData["position"])
         ownerId = tankData["player_id"]
         currentHealth = tankData["health"]
         capturePoints = tankData["capture_points"]
@@ -46,7 +48,7 @@ class Tank(ABC):
         :param speed: An integer representing the speed of the tank.
         """
         self._setComponent("position", PositionComponent(spawnPosition, position, speed))
-        
+
     def _initializeOwner(self, ownerId: int) -> None:
         """
         Initializes the owner component for the tank.
@@ -90,8 +92,9 @@ class Tank(ABC):
             - "damage": An integer representing the damage dealt by the tank's attacks.
         :param rangeBonusEnabled: Indicates whether the attack range bonus is enabled or not.
         """
-        self._setComponent("shooting", CurvedShootingComponent(settings["minAttackRange"], settings["maxAttackRange"], settings["damage"], shootingRangeBonus))
-    
+        self._setComponent("shooting", CurvedShootingComponent(settings["minAttackRange"], settings["maxAttackRange"],
+                                                               settings["damage"], shootingRangeBonus))
+
     def getComponent(self, componentName: str) -> object:
         """
         Returns the component instance with the given name.
@@ -100,7 +103,7 @@ class Tank(ABC):
         :return: The component instance with the given name.
         """
         return self.__components.get(componentName)
-    
+
     def hasComponent(self, componentName: str) -> bool:
         """
         Returns True if the tank has a component with the given name, False otherwise.
@@ -109,7 +112,7 @@ class Tank(ABC):
         :return: True if the tank has a component with the given name, False otherwise.
         """
         return componentName in self.__components
-    
+
     def _setComponent(self, componentName: str, componentInstance: object) -> None:
         """
         Sets the component instance with the given name to the provided instance.
@@ -118,3 +121,45 @@ class Tank(ABC):
         :param componentInstance: The instance of the component to set.
         """
         self.__components[componentName] = componentInstance
+
+    def getBestTarget(self, shootingOptions: shootingOptionsList, tanks):
+        """
+        Shooting by priorities:
+        can be destroyed > capture points > destruction points
+        :param shootingOptions: dict of all possible hexes at which tank can shoot and tanks it will hit
+        :param tanks: list of all tanks on the map
+        :return: position of hex that will hit most optimal target
+        """
+        shootingOptionsInfo = dict()
+        allyTankDamage = self.getComponent("shooting").damage
+
+        for shootingPosition, enemyTankIds in shootingOptions:
+            destroyableTanks = 0
+            capturePoints = 0
+            destructionPoints = 0
+            for enemyTankId in enemyTankIds:
+                enemyTank = tanks[enemyTankId]
+                enemyTankHealth = enemyTank.getComponent("health").currentHealth
+                if enemyTankHealth <= allyTankDamage:
+                    destroyableTanks += 1
+                    destructionPoints += enemyTank.getComponent("destructionReward").destructionReward
+                capturePoints += enemyTank.getComponent("capture").capturePoints
+
+            shootingOptionsInfo[shootingPosition] = {
+                'destroyable': destroyableTanks,
+                'capturePoints': capturePoints,
+                'destructionPoints': destructionPoints
+            }
+        # Num destroyable > num capture points
+        shootingPositions = [(k, v) for k, v in sorted(shootingOptionsInfo.items(),
+                                                  key=lambda x: (-x[1]["capturePoints"] -x[1]["destructionPoints"],
+                                                                 -x[1]["destroyable"]))]
+        return shootingPositions[0]
+
+    def isHealingNeeded(self, hexType: str):
+        """
+        Tank will prioritize healing if it's not capturing the base and if health is lower than max health
+        :param hexType: hexType that tank is standing on
+        :return: true if healing is needed, false otherwise
+        """
+        return hexType != "Base" and self.getComponent("health").currentHealth < self.getComponent("health").maxHealth
