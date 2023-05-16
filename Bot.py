@@ -19,12 +19,10 @@ import heapq
 
 class Bot:
     settings = {
-        "CaptureBaseValue": 1,
-        "CaptureDistanceMultiplier": 0.95,
         "HealthPercentLossMultiplier": 0.1,
         # new postion
-        "RepairPositionBonus": 0.3,
-        "CatapultPositionBonus": 0.3,
+        "RepairPositionBonus": 0.5,
+        "CatapultPositionBonus": 1,
     }
 
     def __init__(self, map: Map, eventManager: EventManager, movementSystem, shootingSystem,
@@ -62,8 +60,7 @@ class Bot:
 
         for position, obj in self.__map:
             if obj == HexTypes.BASE.value:
-                self.__path(position, self.__baseMap, Bot.settings["CaptureBaseValue"],
-                            Bot.settings["CaptureDistanceMultiplier"])
+                self.__path(position, self.__baseMap)
 
     def __distance(self, position1: positionTuple, position2: positionTuple) -> int:
         """
@@ -87,9 +84,9 @@ class Bot:
         ownerId = tankEntity.getComponent("owner").ownerId
         self.__teams.setdefault(ownerId, []).append(tankId)
 
-    def __path(self, position: positionTuple, valueMap, baseValue, distanceMultiplier):
+    def __path(self, position: positionTuple, valueMap):
         visited = set()  # Set to store visited offsets
-        valueMap[position] = max(baseValue, valueMap.get(position, -math.inf))
+        valueMap[position] = max(2, valueMap.get(position, -math.inf))
         queue = deque()
         queue.append((position, 0))
         visited.add(position)
@@ -102,7 +99,11 @@ class Bot:
                 continue
 
             currentValue = valueMap.get(currentPosition)
-            value = baseValue * (distanceMultiplier ** currentDistance)
+            if currentDistance == 0:
+                value = 2
+            else:
+                value = 1 / currentDistance
+
             if currentValue:
                 valueMap[currentPosition] = max(value, currentValue * value)
             else:
@@ -153,22 +154,12 @@ class Bot:
                 totalDamages[position] = totalDamages.get(position, 0) + damage
 
         return totalDamages
-
-    def __getMinBase(self, currentPosition):
-        minDistance = math.inf
-        for position, obj in self.__map:
-            if obj == HexTypes.BASE.value:
-                minDistance = min(minDistance, self.__distance(position, currentPosition))
-
-        if minDistance > 0:
-            return 1 / minDistance
-        else:
-            return 2
                 
     def __buildHeuristicMap(self, tank, tankId, movementOptions, currentPosition, damagedEnemies):
         tank = self.__tanks[tankId]
-        valueMap = {position: self.__getMinBase(position) for position in movementOptions}
-        valueMap[currentPosition] = self.__getMinBase(currentPosition)
+        center = (0, 0, 0)
+        valueMap = {position: self.__baseMap.get(position, self.__distance(position, center)) for position in movementOptions}
+        valueMap[currentPosition] = self.__baseMap.get(currentPosition, self.__distance(currentPosition, center))
         ownerId = tank.getComponent("owner").ownerId
         healthComponent = tank.getComponent("health")
         selfDestructionReward = tank.getComponent("destructionReward").destructionReward
