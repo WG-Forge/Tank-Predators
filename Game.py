@@ -85,7 +85,6 @@ class Game:
 
                 self.__gameState = self.__session.getGameState()
                 self.__turn()
-                self.__round()
             except TimeoutException as exception:
                 logging.debug(f"TimeoutException:{exception.message}")
             except (InappropriateGameStateException, InternalServerErrorException) as exception:
