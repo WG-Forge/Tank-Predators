@@ -191,9 +191,9 @@ class Bot:
             damageValues.append({})
 
             totalDamages = self.__getTotalDamages(enemyTankList)
-            for position, totalDamage in totalDamages.items():
-                if position in valueMap:
-                    healthPartLeft = ((currentHP - totalDamage) / currentHP)
+            for position in valueMap.keys():
+                if position in totalDamages:
+                    healthPartLeft = ((currentHP - totalDamages[position]) / currentHP)
                     if healthPartLeft <= 0:
                         obj = self.__map.objectAt(position)
                         if (obj == "LightRepair" and isinstance(tank, MEDIUM_TANK)) or (obj == "HardRepair" and isinstance(tank, (AT_SPG, HEAVY_TANK))):
