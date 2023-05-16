@@ -40,7 +40,7 @@ class Bot:
         self.__catapultMap = {}
         self.__hexPermutations = list(itertools.permutations([-1, 0, 1], 3))
         self.__teams = {}
-        self.__initializeMap()
+        # self.__initializeMap()
         self.__movementSystem = movementSystem
         self.__shootingSystem = shootingSystem
         self.__tanks = {}
@@ -158,8 +158,8 @@ class Bot:
     def __buildHeuristicMap(self, tank, tankId, movementOptions, currentPosition, damagedEnemies):
         tank = self.__tanks[tankId]
         center = (0, 0, 0)
-        valueMap = {position: self.__baseMap.get(position, self.__distance(position, center)) for position in movementOptions}
-        valueMap[currentPosition] = self.__baseMap.get(currentPosition, self.__distance(currentPosition, center))
+        valueMap = {position: self.__baseMap.get(position, 1 / (self.__distance(position, center) + 1)) for position in movementOptions}
+        valueMap[currentPosition] = self.__baseMap.get(currentPosition, 1 / (self.__distance(currentPosition, center) + 1))
         ownerId = tank.getComponent("owner").ownerId
         healthComponent = tank.getComponent("health")
         selfDestructionReward = tank.getComponent("destructionReward").destructionReward
